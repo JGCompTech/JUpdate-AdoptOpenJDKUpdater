@@ -1,12 +1,18 @@
 package com.jgcomptech.adoptopenjdk;
 
 import ch.qos.logback.classic.Level;
-import com.jgcomptech.adoptopenjdk.logging.Loggers;
-import com.jgcomptech.adoptopenjdk.osutils.windows.powershell.choco.ChocoInstaller;
-import com.jgcomptech.adoptopenjdk.progressbar.ProgressBar;
-import com.jgcomptech.adoptopenjdk.progressbar.ProgressBarBuilder;
-import com.jgcomptech.adoptopenjdk.progressbar.ProgressBarStyle;
-import com.jgcomptech.adoptopenjdk.util.Exclusions;
+import com.jgcomptech.adoptopenjdk.api.APISettings;
+import com.jgcomptech.adoptopenjdk.api.beans.SimpleAsset;
+import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
+import com.jgcomptech.adoptopenjdk.enums.AssetName;
+import com.jgcomptech.adoptopenjdk.enums.DLStatus;
+import com.jgcomptech.adoptopenjdk.enums.ReleaseType;
+import com.jgcomptech.adoptopenjdk.utils.Download;
+import com.jgcomptech.adoptopenjdk.utils.logging.Loggers;
+import com.jgcomptech.adoptopenjdk.utils.osutils.windows.powershell.choco.ChocoInstaller;
+import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBar;
+import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBarBuilder;
+import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBarStyle;
 import org.apache.commons.cli.*;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -21,8 +27,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Optional;
 
-import static com.jgcomptech.adoptopenjdk.util.StringUtils.isBlank;
-import static com.jgcomptech.adoptopenjdk.util.StringUtils.isNumeric;
+import static com.jgcomptech.adoptopenjdk.utils.StringUtils.isBlank;
+import static com.jgcomptech.adoptopenjdk.utils.StringUtils.isNumeric;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class JUpdateApp {
@@ -225,11 +231,23 @@ public class JUpdateApp {
                                             .setStyle(ProgressBarStyle.UNICODE_BLOCK)
                                             .useFileProgressBarRenderer()
                                             .build()) {
-                while(download.getStatus() == 0) {
+                while(download.getStatus() == DLStatus.DOWNLOADING) {
                     pb.stepTo(download.getDownloaded());
                 }
             }
-            logger.info("Download Complete!");
+
+            switch (download.getStatus()) {
+                case COMPLETE:
+                    logger.info("Download Complete!");
+                    break;
+                case CANCELLED:
+                    logger.info("Download Canceled!");
+                    break;
+                case ERROR:
+                    logger.info("Download Failed!");
+                    break;
+            }
+
         } catch (final InterruptedException e) {
             logger.error(e.getMessage(), e);
         }
@@ -269,16 +287,18 @@ public class JUpdateApp {
     private Options getOptions() {
 //        JUpdate v0.0.1 - AdoptOpenJDK Updater
 //
-//        usage: JavaStatsEx [-?] [-d] [-h] [-j9] [-jdk] [-jre] [-p] [-u <Java
-//        Version>]
+//
+//        usage: JavaStatsEx [-?] [-a <Asset Name>] [-d] [-h] [-j9] [-jdk] [-jre]
+//       [-p] [-u <Java Version>]
 //        -?,--help                    shows the help menu
-//        -d,--download                downloads the installer
+//        -a,--asset <Asset Name>      sets the asset name to install
+//                -d,--demo                    demo code
 //        -h,--hotspot                 enables usage of hotspot jvm type
 //        -j9,--openj9                 enables usage of openj9 jvm type
 //        -jdk,--jdk                   enables usage of jdk
 //        -jre,--jre                   enables usage of jre
 //        -p,--pre                     enables use of prerelease assets
-//        -u,--update <Java Version>   checks for updates to java
+//                -u,--update <Java Version>   checks for updates to java
 
         return new Options()
                 .addOption("?", "help", false, "shows the help menu")
@@ -313,6 +333,12 @@ public class JUpdateApp {
         final Options options = getOptions();
 
         final HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("JavaStatsEx", options, true);
+        formatter.printHelp("JUpdate", options, true);
+
+        //TODO: Decide on help text
+//        final String header = "Header Goes Here";
+//        final String footer = "Footer Goes Here";
+//
+//        formatter.printHelp("JUpdate", header, options, footer,true);
     }
 }

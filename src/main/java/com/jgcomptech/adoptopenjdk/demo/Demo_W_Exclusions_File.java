@@ -1,16 +1,20 @@
 package com.jgcomptech.adoptopenjdk.demo;
 
 import ch.qos.logback.classic.Level;
-import com.jgcomptech.adoptopenjdk.*;
-import com.jgcomptech.adoptopenjdk.logging.Loggers;
-import com.jgcomptech.adoptopenjdk.util.Exclusions;
+import com.jgcomptech.adoptopenjdk.Exclusions;
+import com.jgcomptech.adoptopenjdk.JavaRelease;
+import com.jgcomptech.adoptopenjdk.api.APISettings;
+import com.jgcomptech.adoptopenjdk.api.beans.SimpleAsset;
+import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
+import com.jgcomptech.adoptopenjdk.enums.ReleaseType;
+import com.jgcomptech.adoptopenjdk.utils.logging.Loggers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
 
-import static com.jgcomptech.adoptopenjdk.AssetName.x86_32_windows_msi;
+import static com.jgcomptech.adoptopenjdk.enums.AssetName.x86_32_windows_msi;
 
 public final class Demo_W_Exclusions_File {
     public static void main(final String... args) throws IOException {

@@ -1,14 +1,19 @@
 package com.jgcomptech.adoptopenjdk;
 
+import com.jgcomptech.adoptopenjdk.api.APISettings;
+import com.jgcomptech.adoptopenjdk.api.BaseAssets;
+import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
+import com.jgcomptech.adoptopenjdk.enums.AssetName;
+import com.jgcomptech.adoptopenjdk.enums.ReleaseType;
 import com.jgcomptech.adoptopenjdk.recentJava.CollectorsExt;
-import com.jgcomptech.adoptopenjdk.util.IntegerValue;
+import com.jgcomptech.adoptopenjdk.utils.IntegerValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 
-import static com.jgcomptech.adoptopenjdk.ReleaseProcessor.acquireNextReleasePage;
+import static com.jgcomptech.adoptopenjdk.api.ReleaseProcessor.acquireNextReleasePage;
 
 public class JavaRelease {
     public static final JavaRelease Java8 = new JavaRelease("Java 8", 8, "openjdk8-binaries");

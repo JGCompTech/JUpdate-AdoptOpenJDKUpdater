@@ -1,13 +1,13 @@
 package com.jgcomptech.adoptopenjdk.demo;
 
-import com.jgcomptech.adoptopenjdk.APISettings;
 import com.jgcomptech.adoptopenjdk.JavaRelease;
-import com.jgcomptech.adoptopenjdk.SimpleAsset;
+import com.jgcomptech.adoptopenjdk.api.APISettings;
+import com.jgcomptech.adoptopenjdk.api.beans.SimpleAsset;
 
 import java.io.IOException;
 import java.util.Optional;
 
-import static com.jgcomptech.adoptopenjdk.AssetName.x86_32_windows_msi;
+import static com.jgcomptech.adoptopenjdk.enums.AssetName.x86_32_windows_msi;
 
 public class Demo_WO_Exclusions_File {
     public static void main(final String... args) throws IOException {
