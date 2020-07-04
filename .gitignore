@@ -21,3 +21,36 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+/.idea/.gitignore
+/src/main/resources/app.properties
+/target/classes/app.properties
+/.idea/codeStyles/codeStyleConfig.xml
+/.idea/compiler.xml
+/.idea/jarRepositories.xml
+/.idea/JUpdate-AdoptOpenJDKUpdater.iml
+/.idea/libraries/Maven__ch_qos_logback_logback_classic_1_2_3.xml
+/.idea/libraries/Maven__ch_qos_logback_logback_core_1_2_3.xml
+/.idea/libraries/Maven__com_google_code_gson_gson_2_8_6.xml
+/.idea/libraries/Maven__com_sun_istack_istack_commons_runtime_3_0_7.xml
+/.idea/libraries/Maven__com_sun_xml_fastinfoset_FastInfoset_1_2_15.xml
+/.idea/libraries/Maven__commons_cli_commons_cli_1_4.xml
+/.idea/libraries/Maven__commons_io_commons_io_2_7.xml
+/.idea/libraries/Maven__javax_xml_bind_jaxb_api_2_4_0_b180830_0359.xml
+/.idea/libraries/Maven__me_tongfei_progressbar_0_8_1.xml
+/.idea/libraries/Maven__net_java_dev_jna_jna_5_4_0.xml
+/.idea/libraries/Maven__net_java_dev_jna_jna_platform_5_4_0.xml
+/.idea/libraries/Maven__org_apache_commons_commons_lang3_3_10.xml
+/.idea/libraries/Maven__org_apache_maven_maven_model_3_6_3.xml
+/.idea/libraries/Maven__org_codehaus_plexus_plexus_utils_3_3_0.xml
+/.idea/libraries/Maven__org_fusesource_jansi_jansi_1_18.xml
+/.idea/libraries/Maven__org_glassfish_jaxb_jaxb_runtime_2_4_0_b180830_0438.xml
+/.idea/libraries/Maven__org_glassfish_jaxb_txw2_2_4_0_b180830_0438.xml
+/.idea/libraries/Maven__org_hjson_hjson_3_0_0.xml
+/.idea/libraries/Maven__org_jline_jline_3_13_3.xml
+/.idea/libraries/Maven__org_jline_jline_terminal_3_13_3.xml
+/.idea/libraries/Maven__org_jline_jline_terminal_jansi_3_13_3.xml
+/.idea/libraries/Maven__org_jvnet_staxex_stax_ex_1_8.xml
+/.idea/libraries/Maven__org_slf4j_slf4j_api_1_7_30.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml

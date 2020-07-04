@@ -1,0 +1,75 @@
+{
+    java8disabledOS: [
+    ]
+    java9disabledOS: [
+        arm_linux
+        sparcv9_solaris
+        x64_solaris
+        x86-32_windows
+    ]
+    java10disabledOS: [
+        sparcv9_solaris
+        x64_solaris
+        x86-32_windows
+    ]
+    java11disabledOS: [
+        sparcv9_solaris
+        x64_solaris
+    ]
+    java12disabledOS: [
+        sparcv9_solaris
+        x64_solaris
+    ]
+    java13disabledOS: [
+        sparcv9_solaris
+        x64_solaris
+    ]
+    java14disabledOS: [
+        sparcv9_solaris
+        x64_solaris
+    ]
+    java15disabledOS: [
+        sparcv9_solaris
+        x64_solaris
+    ]
+    java8disabledAssets: [
+    ]
+    java9disabledAssets: [
+        aarch64_linux_tar_gz_json
+        ppc64le_linux_tar_gz_json
+        ppc64_aix_tar_gz_json
+        s390x_linux_tar_gz_json
+        x64_linux_tar_gz_json
+        x64_mac_tar_gz_json
+        x64_windows_zip_json
+    ]
+    java10disabledAssets: [
+        aarch64_linux_tar_gz_json
+        arm_linux_tar_gz_json
+        ppc64le_linux_tar_gz_json
+        ppc64_aix_tar_gz_json
+        s390x_linux_tar_gz_json
+        x64_linux_tar_gz_json
+        x64_mac_tar_gz_json
+        x64_windows_zip_json
+    ]
+    java11disabledAssets: [
+    ]
+    java12disabledAssets: [
+        ppc64_aix_tar_gz_json
+    ]
+    java13disabledAssets: [
+    ]
+    java14disabledAssets: [
+    ]
+    java15disabledAssets: [
+    ]
+    java8disableInstallers: false
+    java9disableInstallers: true
+    java10disableInstallers: true
+    java11disableInstallers: false
+    java12disableInstallers: false
+    java13disableInstallers: false
+    java14disableInstallers: false
+    java15disableInstallers: false
+}
