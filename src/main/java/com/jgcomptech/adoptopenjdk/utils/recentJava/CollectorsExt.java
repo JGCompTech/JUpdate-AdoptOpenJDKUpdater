@@ -1,4 +1,4 @@
-package com.jgcomptech.adoptopenjdk.recentJava;
+package com.jgcomptech.adoptopenjdk.utils.recentJava;
 
 import java.util.*;
 import java.util.function.*;

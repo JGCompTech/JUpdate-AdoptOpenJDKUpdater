@@ -1,4 +1,4 @@
-package com.jgcomptech.adoptopenjdk.recentJava;
+package com.jgcomptech.adoptopenjdk.utils.recentJava;
 
 import java.util.AbstractMap;
 import java.util.Collections;

@@ -1,4 +1,4 @@
-package com.jgcomptech.adoptopenjdk.recentJava;
+package com.jgcomptech.adoptopenjdk.utils.recentJava;
 
 import static java.util.Objects.requireNonNull;
 

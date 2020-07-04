@@ -5,8 +5,8 @@ import com.jgcomptech.adoptopenjdk.api.BaseAssets;
 import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
 import com.jgcomptech.adoptopenjdk.enums.AssetName;
 import com.jgcomptech.adoptopenjdk.enums.ReleaseType;
-import com.jgcomptech.adoptopenjdk.recentJava.CollectorsExt;
 import com.jgcomptech.adoptopenjdk.utils.IntegerValue;
+import com.jgcomptech.adoptopenjdk.utils.recentJava.CollectorsExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
