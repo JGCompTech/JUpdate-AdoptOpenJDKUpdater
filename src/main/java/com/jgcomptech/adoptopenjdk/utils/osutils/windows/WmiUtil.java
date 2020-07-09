@@ -1,6 +1,5 @@
 package com.jgcomptech.adoptopenjdk.utils.osutils.windows;
 
-import com.jgcomptech.adoptopenjdk.utils.Utils;
 import com.sun.jna.platform.win32.COM.COMException;
 import com.sun.jna.platform.win32.COM.COMUtils;
 import com.sun.jna.platform.win32.COM.Wbemcli;
@@ -30,7 +29,7 @@ public final class WmiUtil {
     private static final Logger LOG = LoggerFactory.getLogger(WmiUtil.class);
 
     // Global timeout for WMI queries
-    private static int wmiTimeout = Wbemcli.WBEM_INFINITE;
+    private static final int wmiTimeout = Wbemcli.WBEM_INFINITE;
 
     // Cache namespaces
     private static final Set<String> hasNamespaceCache = new HashSet<>();
@@ -55,28 +54,6 @@ public final class WmiUtil {
         // Set up hook to uninit on shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(WmiUtil::unInitCOM));
     }
-
-    /**
-     * Determine if WMI has the requested namespace. Some namespaces only exist
-     * on newer versions of Windows.
-     *
-     * @param namespace
-     *            The namespace to test
-     * @return true if the namespace exists, false otherwise
-     */
-    public static boolean hasNamespace(final String namespace) {
-        if(hasNamespaceCache.contains(namespace)) return true;
-        else if(hasNotNamespaceCache.contains(namespace)) return false;
-
-        if(WbemcliUtil.hasNamespace(namespace)) {
-            hasNamespaceCache.add(namespace);
-            return true;
-        }
-        hasNotNamespaceCache.add(namespace);
-        return false;
-    }
-
-
 
     /**
      * Query WMI for values, with no timeout.
@@ -141,162 +118,6 @@ public final class WmiUtil {
     }
 
     /**
-     * Gets a String value from a WmiResult
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null, an empty-string otherwise
-     */
-    public static <T extends Enum<T>> String getString(final WmiResult<T> result, final T property, final int index) {
-        if(result.getCIMType(property) == Wbemcli.CIM_STRING) return getStr(result, property, index);
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "String",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
-     * Gets a Date value from a WmiResult as a String
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null, an empty-string otherwise
-     */
-    public static <T extends Enum<T>> String getDateString(final WmiResult<T> result, final T property, final int index) {
-        if(result.getCIMType(property) == Wbemcli.CIM_DATETIME) {
-            final String date = getStr(result, property, index);
-            return date.substring(0, 4) + '-' + date.substring(4, 6) + '-' + date.substring(6, 8);
-        }
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "DateTime",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
-     * Gets a Reference value from a WmiResult as a String
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null, an empty-string otherwise
-     */
-    public static <T extends Enum<T>> String getRefString(final WmiResult<T> result, final T property, final int index) {
-        if(result.getCIMType(property) == Wbemcli.CIM_REFERENCE) return getStr(result, property, index);
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "Reference",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    private static <T extends Enum<T>> String getStr(final WmiResult<T> result, final T property, final int index) {
-        final Object o = result.getValue(property, index);
-        if(o == null) return "";
-        if (result.getVtType(property) == Variant.VT_BSTR) return (String) o;
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "String-mapped",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
-     * Gets a Uint64 value from a WmiResult (parsing the String). Note that
-     * while the CIM type is unsigned, the return type is signed and the parsing
-     * will exclude any return values above Long.MAX_VALUE.
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null and parseable as a long, 0 otherwise
-     */
-    public static <T extends Enum<T>> long getUint64(final WmiResult<T> result, final T property, final int index) {
-        final Object o = result.getValue(property, index);
-        if(o == null) return 0L;
-        if(result.getCIMType(property) == Wbemcli.CIM_UINT64 && result.getVtType(property) == Variant.VT_BSTR) {
-            return Utils.parseLongOrDefault((String) o, 0L, LOG);
-        }
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "UINT64",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
-     * Gets an UINT32 value from a WmiResult. Note that while a UINT32 CIM type
-     * is unsigned, the return type is signed and requires further processing by
-     * the user if unsigned values are desired.
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null, 0 otherwise
-     */
-    public static <T extends Enum<T>> int getUint32(final WmiResult<T> result, final T property, final int index) {
-        if(result.getCIMType(property) == Wbemcli.CIM_UINT32) return getInt(result, property, index);
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "UINT32",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
-     * Gets an UINT32 value from a WmiResult as a long, preserving the
-     * unsignedness.
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null, 0 otherwise
-     */
-    public static <T extends Enum<T>> long getUint32asLong(
-            final WmiResult<T> result, final T property, final int index) {
-        if(result.getCIMType(property) == Wbemcli.CIM_UINT32) return getInt(result, property, index) & 0xFFFFFFFFL;
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "UINT32",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
-     * Gets a Sint32 value from a WmiResult. Note that while the CIM type is
-     * unsigned, the return type is signed and requires further processing by
-     * the user if unsigned values are desired.
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null, 0 otherwise
-     */
-    public static <T extends Enum<T>> int getSint32(final WmiResult<T> result, final T property, final int index) {
-        if(result.getCIMType(property) == Wbemcli.CIM_SINT32) return getInt(result, property, index);
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "SINT32",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
      * Gets a Uint16 value from a WmiResult. Note that while the CIM type is
      * unsigned, the return type is signed and requires further processing by
      * the user if unsigned values are desired.
@@ -322,29 +143,6 @@ public final class WmiUtil {
         if(o == null) return 0;
         if(result.getVtType(property) == Variant.VT_I4) return (int) o;
         throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "32-bit integer",
-                result.getCIMType(property), result.getVtType(property)));
-    }
-
-    /**
-     * Gets a Float value from a WmiResult
-     *
-     * @param <T>
-     *            The enum type containing the property keys
-     * @param result
-     *            The WmiResult from which to fetch the value
-     * @param property
-     *            The property (column) to fetch
-     * @param index
-     *            The index (row) to fetch
-     * @return The stored value if non-null, 0 otherwise
-     */
-    public static <T extends Enum<T>> float getFloat(final WmiResult<T> result, final T property, final int index) {
-        final Object o = result.getValue(property, index);
-        if(o == null) return 0f;
-        if(result.getCIMType(property) == Wbemcli.CIM_REAL32 && result.getVtType(property) == Variant.VT_R4) {
-            return (float) o;
-        }
-        throw new ClassCastException(String.format(CLASS_CAST_MSG, property.name(), "Float",
                 result.getCIMType(property), result.getVtType(property)));
     }
 
@@ -396,48 +194,5 @@ public final class WmiUtil {
             Ole32.INSTANCE.CoUninitialize();
             comInitialized = false;
         }
-    }
-
-    /**
-     * COM may already have been initialized outside this class. This boolean is
-     * a flag whether this class initialized it, to avoid uninitializing later
-     * and killing the external initialization
-     *
-     * @return Returns whether this class initialized COM
-     */
-    public static boolean isComInitialized() {
-        return comInitialized;
-    }
-
-    /**
-     * Security only needs to be initialized once. This boolean identifies
-     * whether that has happened.
-     *
-     * @return Returns the securityInitialized.
-     */
-    public static boolean isSecurityInitialized() {
-        return securityInitialized;
-    }
-
-    /**
-     * Gets the current WMI timeout. WMI queries will fail if they take longer
-     * than this number of milliseconds. A value of -1 is infinite (no timeout).
-     *
-     * @return Returns the current value of wmiTimeout.
-     */
-    public static int getWmiTimeout() {
-        return wmiTimeout;
-    }
-
-    /**
-     * Sets the WMI timeout. WMI queries will fail if they take longer than this
-     * number of milliseconds.
-     *
-     * @param wmiTimeout
-     *            The wmiTimeout to set, in milliseconds. To disable timeouts,
-     *            set timeout as -1 (infinite).
-     */
-    public static void setWmiTimeout(final int wmiTimeout) {
-        WmiUtil.wmiTimeout = wmiTimeout;
     }
 }

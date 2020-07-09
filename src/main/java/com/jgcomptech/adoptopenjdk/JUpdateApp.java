@@ -5,15 +5,11 @@ import com.jgcomptech.adoptopenjdk.api.APISettings;
 import com.jgcomptech.adoptopenjdk.api.beans.SimpleAsset;
 import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
 import com.jgcomptech.adoptopenjdk.enums.AssetName;
-import com.jgcomptech.adoptopenjdk.enums.DLStatus;
-import com.jgcomptech.adoptopenjdk.enums.ReleaseType;
-import com.jgcomptech.adoptopenjdk.utils.Download;
+import com.jgcomptech.adoptopenjdk.enums.AssetReleaseType;
+import com.jgcomptech.adoptopenjdk.enums.AssetType;
+import com.jgcomptech.adoptopenjdk.exclusions.Exclusions;
+import com.jgcomptech.adoptopenjdk.utils.info.OSInfo;
 import com.jgcomptech.adoptopenjdk.utils.logging.Loggers;
-import com.jgcomptech.adoptopenjdk.utils.osutils.windows.powershell.choco.ChocoInstaller;
-import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBar;
-import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBarBuilder;
-import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBarStyle;
-import org.apache.commons.cli.*;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -21,30 +17,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Optional;
 
+import static com.jgcomptech.adoptopenjdk.Argument.*;
 import static com.jgcomptech.adoptopenjdk.utils.StringUtils.isBlank;
 import static com.jgcomptech.adoptopenjdk.utils.StringUtils.isNumeric;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class JUpdateApp {
     private final Logger logger = LoggerFactory.getLogger(JUpdateApp.class);
-    private final JavaRelease CURRENT_LTS = JavaRelease.Java11;
+    private static final int CURRENT_LTS = 11;
+    private Arguments arguments;
 
-    public JUpdateApp() throws IOException {
+    public JUpdateApp() {
         Loggers.RootPackage
                 .setName(JUpdateApp.class.getPackage().getName())
                 .enableLimitedConsole(Level.INFO);
-
-        APISettings.loadPropertiesFile();
-        if(APISettings.isUseOAuth()) logger.debug("GitHub OAuth Active...");
-
-        Exclusions.createNewFile();
-        Exclusions.loadFile();
     }
 
     /**
@@ -53,136 +43,164 @@ public class JUpdateApp {
      * @param args an array of String arguments to be parsed
      */
     public void run(final String... args) throws IOException, XmlPullParserException {
-        final MavenXpp3Reader reader = new MavenXpp3Reader();
-        final Model model = reader.read(Files.newBufferedReader(Paths.get("pom.xml"), UTF_8));
+        arguments = new Arguments(args);
 
-        logger.info("JUpdate v" + model.getVersion() + " - AdoptOpenJDK Updater");
-        logger.info("");
-        //OS.load();
-        //logger.info(OSInfo.getName());
-        //logger.info(OSInfo.getNameExpanded());
-        //logger.info(OS.NAME_EXPANDED);
+        //TODO: Figure out how to include the pom.xml file in the JAR file
+        //final Model model = getMavenModel();
+
+        //logger.info("JUpdate v" + model.getVersion() + " - AdoptOpenJDK Updater");
+        logger.info("JUpdate v0.1.0 - AdoptOpenJDK Updater");
         logger.info("");
 
-        final CommandLine line = parseArguments(args);
-
-        if(line.hasOption("help")) {
-            printAppHelp();
-        } else if(line.hasOption("demo")) {
-            ChocoInstaller.install();
-            logger.info("");
-        } else if (line.hasOption("update")) {
+        if(arguments.exists(HELP)) arguments.printAppHelp();
+        else {
             logger.info("Processing Update Info...");
-            final String arg = line.getOptionValue("update");
-            if(isNumeric(arg)) {
-                final int version = Integer.parseInt(arg);
 
-                //if(version < 8) {
-                if(version < 8 || version > 15) {
-                    logger.error("Illegal Update Parameter! Invalid Version Number!");
-                    return;
+            APISettings.loadPropertiesFile();
+            if(APISettings.isUseOAuth()) logger.debug("GitHub OAuth Active...");
+            else logger.debug("GitHub OAuth Inactive...");
+
+            final Optional<JavaRelease> release = getRelease();
+
+            if (release.isPresent()) {
+                final Optional<AssetReleaseType> releaseType = processReleaseType();
+
+                if (!releaseType.isPresent()) return;
+
+                final Optional<AssetJVMType> jvmType = processJVMType();
+
+                if (!jvmType.isPresent()) return;
+
+                final Optional<AssetType> assetType = AssetType.parse(releaseType.get(), jvmType.get());
+
+                if (!assetType.isPresent()) return;
+
+                final SubRelease subRelease = getSubRelease(assetType.get(), release.get());
+
+                Exclusions.createNewFile(arguments.exists(REFRESH));
+                Exclusions.loadFile();
+
+                subRelease.processReleases(arguments).printMissingAssets().printExtraAssets();
+
+                final AssetName assetName = processAssetName().orElseGet(this::getLocalizedAssetName);
+
+                final Optional<SimpleAsset> asset = subRelease.getAssets().get(assetName);
+
+                if (!asset.isPresent()) throw new IllegalArgumentException("Asset Not Found!");
+
+                if(arguments.exists(SHOW_ASSET_INFO)) {
+                    final SimpleAsset a = asset.get();
+
+                    logger.info("Release: " + a.getParentName());
+                    logger.info("JVM Type: " + a.getJVMType().getValue());
+                    logger.info("OS Name: " + a.getOS().getValue());
+                    logger.info("Asset Name: " + a.getAssetName());
+                    logger.info("Version: " + a.getVersion().getMain());
+                    logger.info("Date Created: " + a.getCreatedAt());
+                    logger.info("File Size: " + a.getSizeFormatted());
+                    logger.info("File Type: " + a.getContentType());
+                    logger.info("Release URL: " + a.getParent().getHtml_url());
+                    logger.info("Download Link: " + a.getBrowserDownloadURL());
                 }
 
-                final Optional<ReleaseType> releaseType = processReleaseType(line);
+                final String downloadUrl = asset.get().getBrowserDownloadURL();
 
-                if(!releaseType.isPresent()) return;
+                final Updater updater = new Updater(subRelease, asset.get());
 
-                final Optional<AssetJVMType> jvmType = processJVMType(line);
+                if (updater.needsUpdate()) {
+                    if (!updater.isInstalled()) {
+                        logger.info("Update Required! Currently Not Installed!");
+                        if(arguments.exists(BOOLEAN)) System.out.println("true");
+                    } else {
+                        logger.info("Update Required! Currently Installed: " + updater.getCurrentVersion().getMain());
+                        if(arguments.exists(BOOLEAN)) System.out.println("true");
+                    }
+                    if (arguments.exists(DOWNLOAD) || arguments.exists(INSTALL)) {
 
-                if(!jvmType.isPresent()) return;
+                        String path = "";
 
-                final Optional<AssetName> assetName = processAssetName(line);
+                        if (arguments.exists(DOWNLOAD)) path = arguments.getValue(DOWNLOAD);
+                        if (arguments.exists(INSTALL)) path = arguments.getValue(INSTALL);
 
-                final JavaRelease releases;
-
-                switch (version) {
-                    case 8:
-                        releases = JavaRelease.Java8;
-                        break;
-                    case 9:
-                        releases = JavaRelease.Java9;
-                        break;
-                    case 10:
-                        releases = JavaRelease.Java10;
-                        break;
-                    case 11:
-                        releases = JavaRelease.Java11;
-                        break;
-                    case 12:
-                        releases = JavaRelease.Java12;
-                        break;
-                    case 13:
-                        releases = JavaRelease.Java13;
-                        break;
-                    case 14:
-                        releases = JavaRelease.Java14;
-                        break;
-                    case 15:
-                        releases = JavaRelease.Java15;
-                        break;
-                    default:
-                        releases = CURRENT_LTS;
-//                        releases =
-//                                new JavaRelease("Java " + version, version, "openjdk" + version + "-binaries");
-                        break;
+                        Optional<String> filename = updater.runDownload(path, downloadUrl);
+                        if (arguments.exists(INSTALL)) {
+                            if (filename.isPresent()) {
+                                updater.runInstall(filename.get());
+                            }
+                        }
+                    }
+                } else {
+                    logger.info("Installed Java Is Latest Version! Update Not Needed!");
+                    if(arguments.exists(BOOLEAN)) System.out.println("false");
                 }
-
-                logger.info("Selected Java " + version + ", Please wait...");
-                releases
-                        .processReleases(releaseType.get(), jvmType.get())
-                        .printMissingJDKAssets()
-                        .printExtraJDKAssets();
-
-                assetName.ifPresent(name -> getDownloadInfo(releases, name));
-            } else if(isBlank(arg)) {
-                final Optional<ReleaseType> releaseType = processReleaseType(line);
-
-                if(!releaseType.isPresent()) return;
-
-                final Optional<AssetJVMType> jvmType = processJVMType(line);
-
-                if(!jvmType.isPresent()) return;
-
-                final Optional<AssetName> assetName = processAssetName(line);
-
-                if(!assetName.isPresent()) return;
-
-                CURRENT_LTS
-                        .processReleases(releaseType.get(), jvmType.get())
-                        .printMissingJDKAssets()
-                        .printExtraJDKAssets();
-
-                assetName.ifPresent(name -> getDownloadInfo(CURRENT_LTS, name));
-            } else {
-                logger.error("Illegal Update Parameter! Invalid Version Number!");
             }
-        } else {
-            printAppHelp();
         }
     }
 
+    private Optional<JavaRelease> getRelease() {
+        final String arg = arguments.getValue(VERSION);
+        if(isNumeric(arg)) {
+            final int version = Integer.parseInt(arg);
 
-    private Optional<ReleaseType> processReleaseType(final CommandLine line) {
-        if(line.hasOption("jdk") && line.hasOption("jre")) {
+            if(version < 8) {
+                logger.error("Illegal Update Parameter! Invalid Version Number! Java 7 and earlier is unsupported!");
+                return Optional.empty();
+            }
+
+            logger.info("Selected Java " + version + ", Please wait...");
+
+            JavaRelease release = new JavaRelease(version);
+            JavaRelease.releases.put("java" + version, release);
+            return Optional.of(release);
+        } else if(isBlank(arg)) {
+            logger.info("No Version Selected, Using Current LTS, Java " + CURRENT_LTS + ", Please wait...");
+
+            JavaRelease release = new JavaRelease(CURRENT_LTS);
+            JavaRelease.releases.put("java" + CURRENT_LTS, release);
+            return Optional.of(release);
+        } else {
+            logger.error("Illegal Update Parameter! Invalid Version Number! Parameter must be numeric only!");
+            return Optional.empty();
+        }
+    }
+
+    private SubRelease getSubRelease(final AssetType assetType, final JavaRelease release) {
+        //Load current assets based on the specified JVM type
+        switch (assetType) {
+            case JDKHotspot:
+                return release.getJdkHotspot();
+            case JREHotspot:
+                return release.getJreHotspot();
+            case JDKOpenJ9:
+                return release.getJdkOpenJ9();
+            case JREOpenJ9:
+                return release.getJreOpenJ9();
+            default:
+                throw new IllegalStateException("Unexpected value: null");
+        }
+    }
+
+    private Optional<AssetReleaseType> processReleaseType() {
+        if(arguments.exists(JDK) && arguments.exists(JRE)) {
             logger.error("Illegal Update Parameter! Must select either jdk or jre not both!");
             return Optional.empty();
         }
 
-        return line.hasOption("jre") ? Optional.of(ReleaseType.JRE) : Optional.of(ReleaseType.JDK);
+        return arguments.exists(JRE) ? Optional.of(AssetReleaseType.JRE) : Optional.of(AssetReleaseType.JDK);
     }
 
-    private Optional<AssetJVMType> processJVMType(final CommandLine line) {
-        if(line.hasOption("hotspot") && line.hasOption("openj9")) {
+    private Optional<AssetJVMType> processJVMType() {
+        if(arguments.exists(HOTSPOT) && arguments.exists(OPENJ9)) {
             logger.error("Illegal Update Parameter! Must select either hotspot or openj9 not both!");
             return Optional.empty();
         }
 
-        return line.hasOption("openj9") ? Optional.of(AssetJVMType.openj9) : Optional.of(AssetJVMType.hotspot);
+        return arguments.exists(OPENJ9) ? Optional.of(AssetJVMType.OpenJ9) : Optional.of(AssetJVMType.Hotspot);
     }
 
-    private Optional<AssetName> processAssetName(final CommandLine line) {
-        if(line.hasOption("asset")) {
-            final Optional<AssetName> name = AssetName.parse(line.getOptionValue("asset"));
+    private Optional<AssetName> processAssetName() {
+        if(arguments.exists(ASSET_NAME)) {
+            final Optional<AssetName> name = AssetName.parse(arguments.getValue(ASSET_NAME));
 
             if (!name.isPresent()) {
                 logger.error("Illegal Update Parameter! Must provide valid asset name!");
@@ -194,151 +212,23 @@ public class JUpdateApp {
         return Optional.empty();
     }
 
-    private void getDownloadInfo(final JavaRelease release, final AssetName assetName) {
-        final Optional<SimpleAsset> asset = release.getJdkHotspotAssets().get(assetName);
-        if(asset.isPresent()) {
-            final SimpleAsset a = asset.get();
-
-            logger.info("Release: " + a.getParentName());
-            logger.info("JVM Type: " + a.getJVMType().getValue());
-            logger.info("OS Name: " + a.getOS().getValue());
-            logger.info("Asset Name: " + a.getAssetName());
-            logger.info("Date Created: " + a.getCreatedAt());
-            logger.info("File Size: " + a.getSizeFormatted());
-            logger.info("File Type: " + a.getContentType());
-            logger.info("Download Link: " + a.getBrowserDownloadURL());
-
-            download(a.getBrowserDownloadURL());
-        }
+    private AssetName getLocalizedAssetName() {
+        if(OSInfo.isWindows()) {
+            if(OSInfo.is64BitOS()) return AssetName.x64_windows_msi;
+            else return AssetName.x86_32_windows_msi;
+        } else if(OSInfo.isMac()) {
+            if(OSInfo.is64BitOS()) return AssetName.x64_mac_pkg;
+            else throw new IllegalStateException("Unsupported OS! 32-bit MacOSX is unsupported!");
+        } else if(OSInfo.isLinux()) {
+            if(OSInfo.is64BitOS()) return AssetName.x64_linux_tar_gz;
+            else throw new IllegalStateException("Unsupported OS! 32-bit Linux is unsupported!");
+        } else if(OSInfo.isSolaris()) {
+            if(OSInfo.is64BitOS()) return AssetName.x64_solaris_tar_gz;
+            else throw new IllegalArgumentException("Unsupported OS! 32-bit Linux is unsupported!");
+        } else throw new IllegalStateException("Unsupported OS!");
     }
 
-    private void download(final String url) {
-        try {
-            download(new URL(url));
-        } catch (final MalformedURLException e) {
-            logger.error(e.getMessage(), e);
-        }
-    }
-
-    private void download(final URL url) {
-        try {
-            final Download download = new Download(url);
-            while(download.getSize() == -1) Thread.sleep(10);
-            logger.info("Downloading installer...");
-            try (final ProgressBar pb = new ProgressBarBuilder()
-                                            .setTaskName("")
-                                            .setInitialMax(download.getSize())
-                                            .setStyle(ProgressBarStyle.UNICODE_BLOCK)
-                                            .useFileProgressBarRenderer()
-                                            .build()) {
-                while(download.getStatus() == DLStatus.DOWNLOADING) {
-                    pb.stepTo(download.getDownloaded());
-                }
-            }
-
-            switch (download.getStatus()) {
-                case COMPLETE:
-                    logger.info("Download Complete!");
-                    break;
-                case CANCELLED:
-                    logger.info("Download Canceled!");
-                    break;
-                case ERROR:
-                    logger.info("Download Failed!");
-                    break;
-            }
-
-        } catch (final InterruptedException e) {
-            logger.error(e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Parses application arguments
-     *
-     * @param args application arguments
-     * @return {@code CommandLine} which represents a list of application
-     * arguments.
-     */
-    private CommandLine parseArguments(final String... args) {
-        final Options options = getOptions();
-        final CommandLineParser parser = new DefaultParser();
-
-        try {
-            return parser.parse(options, args);
-
-        } catch (final ParseException ex) {
-
-            logger.error("Failed to parse command line arguments");
-            logger.error(ex.toString());
-            printAppHelp();
-
-            System.exit(1);
-        }
-
-        return null;
-    }
-
-    /**
-     * Generates application command line options
-     *
-     * @return application {@code Options}
-     */
-    private Options getOptions() {
-//        JUpdate v0.0.1 - AdoptOpenJDK Updater
-//
-//
-//        usage: JavaStatsEx [-?] [-a <Asset Name>] [-d] [-h] [-j9] [-jdk] [-jre]
-//       [-p] [-u <Java Version>]
-//        -?,--help                    shows the help menu
-//        -a,--asset <Asset Name>      sets the asset name to install
-//                -d,--demo                    demo code
-//        -h,--hotspot                 enables usage of hotspot jvm type
-//        -j9,--openj9                 enables usage of openj9 jvm type
-//        -jdk,--jdk                   enables usage of jdk
-//        -jre,--jre                   enables usage of jre
-//        -p,--pre                     enables use of prerelease assets
-//                -u,--update <Java Version>   checks for updates to java
-
-        return new Options()
-                .addOption("?", "help", false, "shows the help menu")
-                .addOption(Option.builder("u")
-                        .longOpt("update")
-                        .desc("checks for updates to java")
-                        .hasArg()
-                        .argName("Java Version")
-                        .optionalArg(true)
-                        .build())
-                .addOption("p", "pre", false, "enables use of prerelease assets")
-                .addOption("jdk", "jdk", false, "enables usage of jdk")
-                .addOption("jre", "jre", false, "enables usage of jre")
-                .addOption("h", "hotspot", false, "enables usage of hotspot jvm type")
-                .addOption("j9", "openj9", false, "enables usage of openj9 jvm type")
-                .addOption("d", "download", false, "downloads the installer")
-                .addOption("a", "asset", true, "sets the asset name to install")
-                .addOption("d", "demo", false, "demo code")
-                .addOption(Option.builder("a")
-                        .longOpt("asset")
-                        .desc("sets the asset name to install")
-                        .hasArg()
-                        .argName("Asset Name")
-                        .optionalArg(true)
-                        .build());
-    }
-
-    /**
-     * Prints application help
-     */
-    private void printAppHelp() {
-        final Options options = getOptions();
-
-        final HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("JUpdate", options, true);
-
-        //TODO: Decide on help text
-//        final String header = "Header Goes Here";
-//        final String footer = "Footer Goes Here";
-//
-//        formatter.printHelp("JUpdate", header, options, footer,true);
+    private Model getMavenModel() throws IOException, XmlPullParserException {
+        return new MavenXpp3Reader().read(Files.newBufferedReader(Paths.get("pom.xml"), UTF_8));
     }
 }

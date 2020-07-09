@@ -10,6 +10,7 @@ import java.util.List;
 
 public final class SimpleRelease {
     private final String url;
+    private final String html_url;
     private final int id;
     private final String tag_name;
     private final String target_commitish;
@@ -27,6 +28,7 @@ public final class SimpleRelease {
         final JsonArray assetsArray = rootObj.getAsJsonArray("assets");
 
         url = rootObj.get("url").getAsString();
+        html_url = rootObj.get("html_url").getAsString();
         id = rootObj.get("id").getAsInt();
         tag_name = rootObj.get("tag_name").getAsString();
         target_commitish = rootObj.get("target_commitish").getAsString();
@@ -44,6 +46,7 @@ public final class SimpleRelease {
             final JsonObject currentObj = obj.getAsJsonObject();
             assets.add(SimpleAsset
                     .getBuilder()
+                    .setParent(this)
                     .setUrl(currentObj.get("url").getAsString())
                     .setId(currentObj.get("id").getAsInt())
                     .setFileName(currentObj.get("name").getAsString())
@@ -58,6 +61,10 @@ public final class SimpleRelease {
 
     public String getUrl() {
         return url;
+    }
+
+    public String getHtml_url() {
+        return html_url;
     }
 
     public int getId() {

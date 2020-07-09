@@ -50,6 +50,10 @@ public class SmartRelease {
         return release.getUrl();
     }
 
+    public String getHtml_url() {
+        return release.getHtml_url();
+    }
+
     public int getId() {
         return release.getId();
     }

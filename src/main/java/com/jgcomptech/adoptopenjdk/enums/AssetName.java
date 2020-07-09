@@ -1,6 +1,7 @@
 package com.jgcomptech.adoptopenjdk.enums;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 
 import static com.jgcomptech.adoptopenjdk.enums.AssetFileType.*;
@@ -22,9 +23,17 @@ public enum AssetName {
     ppc64le_linux_tar_gz_json,
     ppc64le_linux_tar_gz_sha256_txt,
 
+    ppc64le_linux_linuxXL_tar_gz,
+    ppc64le_linux_linuxXL_tar_gz_json,
+    ppc64le_linux_linuxXL_tar_gz_sha256_txt,
+
     s390x_linux_tar_gz,
     s390x_linux_tar_gz_json,
     s390x_linux_tar_gz_sha256_txt,
+
+    s390x_linux_linuxXL_tar_gz,
+    s390x_linux_linuxXL_tar_gz_json,
+    s390x_linux_linuxXL_tar_gz_sha256_txt,
 
     sparcv9_solaris_tar_gz,
     sparcv9_solaris_tar_gz_json,
@@ -34,21 +43,25 @@ public enum AssetName {
     x64_linux_tar_gz_json,
     x64_linux_tar_gz_sha256_txt,
 
-//    x64_mac_macosXL_pkg,
-//    x64_mac_macosXL_pkg_json,
-//    x64_mac_macosXL_pkg_sha256_txt,
-//
-//    x64_mac_macosXL_tar_gz,
-//    x64_mac_macosXL_tar_gz_json,
-//    x64_mac_macosXL_tar_gz_sha256_txt,
+    x64_linux_linuxXL_tar_gz,
+    x64_linux_linuxXL_tar_gz_json,
+    x64_linux_linuxXL_tar_gz_sha256_txt,
 
     x64_mac_pkg,
     x64_mac_pkg_json,
     x64_mac_pkg_sha256_txt,
 
+    x64_mac_macosXL_pkg,
+    x64_mac_macosXL_pkg_json,
+    x64_mac_macosXL_pkg_sha256_txt,
+
     x64_mac_tar_gz,
     x64_mac_tar_gz_json,
     x64_mac_tar_gz_sha256_txt,
+
+    x64_mac_macosXL_tar_gz,
+    x64_mac_macosXL_tar_gz_json,
+    x64_mac_macosXL_tar_gz_sha256_txt,
 
     x64_solaris_tar_gz,
     x64_solaris_tar_gz_json,
@@ -58,17 +71,17 @@ public enum AssetName {
     x64_windows_msi_json,
     x64_windows_msi_sha256_txt,
 
-//    x64_windows_windowsXL_msi,
-//    x64_windows_windowsXL_msi_json,
-//    x64_windows_windowsXL_msi_sha256_txt,
-//
-//    x64_windows_windowsXL_zip,
-//    x64_windows_windowsXL_zip_json,
-//    x64_windows_windowsXL_zip_sha256_txt,
+    x64_windows_windowsXL_msi,
+    x64_windows_windowsXL_msi_json,
+    x64_windows_windowsXL_msi_sha256_txt,
 
     x64_windows_zip,
     x64_windows_zip_json,
     x64_windows_zip_sha256_txt,
+
+    x64_windows_windowsXL_zip,
+    x64_windows_windowsXL_zip_json,
+    x64_windows_windowsXL_zip_sha256_txt,
 
     x86_32_windows_msi,
     x86_32_windows_msi_json,
@@ -86,9 +99,14 @@ public enum AssetName {
     }
 
     public static AssetName parseFromName(final String name) {
-        final AssetFileType fileType = AssetFileType.parseFromName(name);
+        final String lowercaseName = name
+                .toLowerCase(Locale.getDefault())
+                .replace("_openj9", "")
+                .replace("_hotspot", "");
 
-        switch(AssetOS.parseFromName(name)) {
+        final AssetFileType fileType = AssetFileType.parseFromName(lowercaseName);
+
+        switch(AssetOS.parseFromName(lowercaseName)) {
             case NONE:
                 break;
             case aarch64_linux:
@@ -111,10 +129,20 @@ public enum AssetName {
                 if(fileType == tar_gz_sha256_txt) return ppc64_aix_tar_gz_sha256_txt;
                 if(fileType == tar_gz) return ppc64_aix_tar_gz;
                 break;
+            case ppc64le_linux_linuxXL:
+                if(fileType == tar_gz_json) return ppc64le_linux_linuxXL_tar_gz_json;
+                if(fileType == tar_gz_sha256_txt) return ppc64le_linux_linuxXL_tar_gz_sha256_txt;
+                if(fileType == tar_gz) return ppc64le_linux_linuxXL_tar_gz;
+                break;
             case s390x_linux:
                 if(fileType == tar_gz_json) return s390x_linux_tar_gz_json;
                 if(fileType == tar_gz_sha256_txt) return s390x_linux_tar_gz_sha256_txt;
                 if(fileType == tar_gz) return s390x_linux_tar_gz;
+                break;
+            case s390x_linux_linuxXL:
+                if(fileType == tar_gz_json) return s390x_linux_linuxXL_tar_gz_json;
+                if(fileType == tar_gz_sha256_txt) return s390x_linux_linuxXL_tar_gz_sha256_txt;
+                if(fileType == tar_gz) return s390x_linux_linuxXL_tar_gz;
                 break;
             case sparcv9_solaris:
                 if (fileType == tar_gz_json) return sparcv9_solaris_tar_gz_json;
@@ -126,14 +154,19 @@ public enum AssetName {
                 if(fileType == tar_gz_sha256_txt) return x64_linux_tar_gz_sha256_txt;
                 if(fileType == tar_gz) return x64_linux_tar_gz;
                 break;
-//            case x64_mac_macosXL:
-//                if(fileType == pkg_json) return x64_mac_macosXL_pkg_json;
-//                if(fileType == pkg_sha256_txt) return x64_mac_macosXL_pkg_sha256_txt;
-//                if(fileType == pkg) return x64_mac_macosXL_pkg;
-//                if(fileType == tar_gz_json) return x64_mac_macosXL_tar_gz_json;
-//                if(fileType == tar_gz_sha256_txt) return x64_mac_macosXL_tar_gz_sha256_txt;
-//                if(fileType == tar_gz) return x64_mac_macosXL_tar_gz;
-//                break;
+            case x64_linux_linuxXL:
+                if(fileType == tar_gz_json) return x64_linux_linuxXL_tar_gz_json;
+                if(fileType == tar_gz_sha256_txt) return x64_linux_linuxXL_tar_gz_sha256_txt;
+                if(fileType == tar_gz) return x64_linux_linuxXL_tar_gz;
+                break;
+            case x64_mac_macosXL:
+                if(fileType == pkg_json) return x64_mac_macosXL_pkg_json;
+                if(fileType == pkg_sha256_txt) return x64_mac_macosXL_pkg_sha256_txt;
+                if(fileType == pkg) return x64_mac_macosXL_pkg;
+                if(fileType == tar_gz_json) return x64_mac_macosXL_tar_gz_json;
+                if(fileType == tar_gz_sha256_txt) return x64_mac_macosXL_tar_gz_sha256_txt;
+                if(fileType == tar_gz) return x64_mac_macosXL_tar_gz;
+                break;
             case x64_mac:
                 if(fileType == pkg_json) return x64_mac_pkg_json;
                 if(fileType == pkg_sha256_txt) return x64_mac_pkg_sha256_txt;
@@ -147,14 +180,6 @@ public enum AssetName {
                 if (fileType == tar_gz_sha256_txt) return x64_solaris_tar_gz_sha256_txt;
                 if (fileType == tar_gz) return x64_solaris_tar_gz;
                 break;
-//            case x64_windows_windowsXL:
-//                if(fileType == msi_json) return x64_windows_windowsXL_msi_json;
-//                if(fileType == msi_sha256_txt) return x64_windows_windowsXL_msi_sha256_txt;
-//                if(fileType == msi) return x64_windows_windowsXL_msi;
-//                if(fileType == zip_json) return x64_windows_windowsXL_zip_json;
-//                if(fileType == zip_sha256_txt) return x64_windows_windowsXL_zip_sha256_txt;
-//                if(fileType == zip) return x64_windows_windowsXL_zip;
-//                break;
             case x64_windows:
                 if(fileType == msi_json) return x64_windows_msi_json;
                 if(fileType == msi_sha256_txt) return x64_windows_msi_sha256_txt;
@@ -162,6 +187,14 @@ public enum AssetName {
                 if(fileType == zip_json) return x64_windows_zip_json;
                 if(fileType == zip_sha256_txt) return x64_windows_zip_sha256_txt;
                 if(fileType == zip) return x64_windows_zip;
+                break;
+            case x64_windows_windowsXL:
+                if(fileType == msi_json) return x64_windows_windowsXL_msi_json;
+                if(fileType == msi_sha256_txt) return x64_windows_windowsXL_msi_sha256_txt;
+                if(fileType == msi) return x64_windows_windowsXL_msi;
+                if(fileType == zip_json) return x64_windows_windowsXL_zip_json;
+                if(fileType == zip_sha256_txt) return x64_windows_windowsXL_zip_sha256_txt;
+                if(fileType == zip) return x64_windows_windowsXL_zip;
                 break;
             case x86_32_windows:
                 if(fileType == msi_json) return x86_32_windows_msi_json;

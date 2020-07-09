@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Observable;
 
 import static com.jgcomptech.adoptopenjdk.enums.DLStatus.*;
@@ -24,9 +26,20 @@ public class Download extends Observable implements Runnable {
     private int downloaded; // number of bytes downloaded
     private DLStatus status; // current status of download
     private String errorMessage; //the error message if an error occurs
+    private String path;
+    private String filename;
+    private String filepath;
 
     // Constructor for Download.
-    public Download(URL url) {
+    public Download(final String path, final URL url) {
+        this.path = path;
+
+        while (this.path.endsWith("/")) {
+            this.path = this.path.substring(0, this.path.length() - 1);
+        }
+
+        if(!this.path.isEmpty()) this.path = this.path + '/';
+
         this.url = url;
         size = -1;
         downloaded = 0;
@@ -96,14 +109,28 @@ public class Download extends Observable implements Runnable {
         thread.start();
     }
 
+    public String getFilename() {
+        return filename;
+    }
+
     // Get file name portion of URL.
-    private String getFileName(URL url) {
+    private String parseFilename(URL url) {
         String fileName = url.getFile();
         return fileName.substring(fileName.lastIndexOf('/') + 1);
     }
 
+    //Gets the path of the folder to download to.
+    public String getPath() {
+        return path;
+    }
+
+    public String getFilepath() {
+        return filepath;
+    }
+
     // Download file.
     public void run() {
+        Path filePath = null;
         RandomAccessFile file = null;
         InputStream stream = null;
 
@@ -137,8 +164,13 @@ public class Download extends Observable implements Runnable {
                 stateChanged();
             }
 
+            filename = parseFilename(url);
+            filepath = path + filename;
+
             // Open file and seek to the end of it.
-            file = new RandomAccessFile(getFileName(url), "rw");
+            filePath = Paths.get(filepath);
+
+            file = new RandomAccessFile(filePath.toFile(), "rw");
             file.seek(downloaded);
 
             stream = connection.getInputStream();

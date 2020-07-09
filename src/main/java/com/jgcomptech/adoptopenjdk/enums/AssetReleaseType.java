@@ -4,7 +4,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public enum ReleaseType {
+public enum AssetReleaseType {
     NONE(""),
     JDK("jdk"),
     JRE("jre"),
@@ -12,7 +12,7 @@ public enum ReleaseType {
 
     private static final Pattern OPENJDK = Pattern.compile("openjdk", Pattern.LITERAL);
     final String value;
-    ReleaseType(final String value) {
+    AssetReleaseType(final String value) {
         this.value = value;
     }
 
@@ -20,7 +20,7 @@ public enum ReleaseType {
         return value;
     }
 
-    public static ReleaseType parseFromName(final String name) {
+    public static AssetReleaseType parseFromName(final String name) {
         final String newName = OPENJDK.matcher(name.toLowerCase(Locale.getDefault()))
                 .replaceAll(Matcher.quoteReplacement(""));
 

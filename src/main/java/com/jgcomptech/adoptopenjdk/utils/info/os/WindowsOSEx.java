@@ -1,28 +1,24 @@
 package com.jgcomptech.adoptopenjdk.utils.info.os;
 
-import com.jgcomptech.adoptopenjdk.utils.info.OSInfo;
 import com.jgcomptech.adoptopenjdk.utils.info.OperatingSystem;
 import com.jgcomptech.adoptopenjdk.utils.info.enums.OSList;
+import com.jgcomptech.adoptopenjdk.utils.osutils.ExecutingCommand;
 import com.jgcomptech.adoptopenjdk.utils.osutils.windows.enums.*;
 import com.sun.jna.Native;
-import com.sun.jna.platform.win32.*;
+import com.sun.jna.platform.win32.Advapi32;
+import com.sun.jna.platform.win32.Advapi32Util;
 import com.sun.jna.platform.win32.COM.WbemcliUtil;
+import com.sun.jna.platform.win32.Secur32;
+import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.W32APIOptions;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.codehaus.plexus.util.FileUtils;
 
-import java.io.*;
-import java.net.InetAddress;
-import java.net.URL;
-import java.net.UnknownHostException;
+import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.jgcomptech.adoptopenjdk.utils.Utils.*;
 import static com.jgcomptech.adoptopenjdk.utils.info.OSInfo.*;
@@ -31,75 +27,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /** Returns extended information about the current Windows installation. */
 public final class WindowsOSEx {
     public static final OperatingSystem OS = WindowsOS.getInstance();
-
-    /** Returns information about the Windows activation status. */
-    public static final class Activation {
-        /**
-         * Identifies if OS is activated.
-         * @return true if activated, false if not activated
-         * @throws IOException if error occurs
-         */
-        public static boolean isActivated() throws IOException { return getStatusAsEnum() == ActivationStatus.Licensed; }
-
-        /**
-         * Identifies If Windows is Activated, uses the Software Licensing Manager Script,
-         * this is the quicker method.
-         * @return "Licensed" If Genuinely Activated as enum
-         * @throws IOException if error occurs
-         */
-        public static ActivationStatus getStatusAsEnum() throws IOException {
-            return ActivationStatus.parseString(getStatusFromSLMGR());
-        }
-
-        /**
-         * Identifies If Windows is Activated, uses the Software Licensing Manager Script,
-         * this is the quicker method.
-         * @return "Licensed" If Genuinely Activated
-         * @throws IOException if an error occurs
-         */
-        public static String getStatusString() throws IOException { return getStatusFromSLMGR(); }
-
-        /**
-         * Identifies If Windows is Activated, uses WMI.
-         * @return Licensed If Genuinely Activated
-         * @throws IOException if error occurs
-         * @throws InterruptedException if command is interrupted
-         */
-        public static String getStatusFromWMI() throws IOException, InterruptedException {
-            final String LicenseStatus = WMI.getWMIValue("SELECT * "
-                    + "FROM SoftwareLicensingProduct "
-                    + "Where PartialProductKey <> null "
-                    + "AND ApplicationId='55c92734-d682-4d71-983e-d6ec3f16059f' "
-                    + "AND LicenseisAddon=False", "LicenseStatus");
-            return ActivationStatus.parse(Integer.parseInt(LicenseStatus)).getFullName();
-        }
-
-        /**
-         * Identifies If Windows is Activated, uses the Software Licensing Manager Script,
-         * this is the quicker method.
-         * @return Licensed If Genuinely Activated
-         * @throws IOException if an error occurs
-         */
-        @SuppressWarnings({"CallToRuntimeExec", "HardcodedFileSeparator"})
-        public static String getStatusFromSLMGR() throws IOException {
-            while(true) {
-                final Process p = Runtime.getRuntime().exec(
-                        "cscript C:\\Windows\\System32\\Slmgr.vbs /dli");
-                try(final BufferedReader stdOut = new BufferedReader(new InputStreamReader(p.getInputStream(), UTF_8))) {
-                    String s;
-                    while((s = stdOut.readLine()) != null) {
-                        //System.out.println(s);
-                        if(s.contains("License Status: ")) {
-                            return s.replace("License Status: ", "");
-                        }
-                    }
-                }
-            }
-        }
-
-        /** Prevents instantiation of this utility class. */
-        private Activation() { }
-    }
 
     /** Returns the product type of the operating system running on this Computer. */
     public static final class Edition {
@@ -212,30 +139,6 @@ public final class WindowsOSEx {
         private Edition() { }
     }
 
-    /** Returns the different names provided by the operating system. */
-    public static final class Name {
-        /**
-         * Returns a full version String, ex.: "Windows XP SP2 (32 Bit)".
-         * @return String representing a fully displayable version as stored in Windows Registry
-         */
-        @SuppressWarnings("HardcodedFileSeparator")
-        public static String getStringExpandedFromRegistry() {
-            try {
-                final String SPString = isWin8OrLater() ? "- " + Version.getBuild()
-                        : " SP" + ServicePack.getString().replace("Service Pack ", "");
-                final String key = "Software\\\\Microsoft\\\\Windows NT\\\\CurrentVersion";
-                final String value = "ProductName";
-                final String text = Registry.getStringValue(Registry.HKEY.LOCAL_MACHINE, key, value);
-                return text + ' ' + SPString + " (" + OSInfo.getBitNumber() + " Bit)";
-            } catch (final IOException | InterruptedException e) {
-                return "Unknown";
-            }
-        }
-
-        /** Prevents instantiation of this utility class. */
-        private Name() { }
-    }
-
     /** Returns the service pack information of the operating system running on this Computer. */
     public static final class ServicePack {
         /**
@@ -262,113 +165,6 @@ public final class WindowsOSEx {
 
         /** Prevents instantiation of this utility class. */
         private ServicePack() { }
-    }
-
-    /** Returns information about the current Windows installation. */
-    public static final class SystemInfo {
-        /**
-         * Returns information about the current Windows installation as text.
-         * @return Information as string
-         * @throws IOException if command cannot be run
-         */
-        @SuppressWarnings("CallToRuntimeExec")
-        public static String getInfo() throws IOException {
-            final Process process = Runtime.getRuntime().exec("systeminfo");
-            try(final BufferedReader systemInformationReader =
-                        new BufferedReader(new InputStreamReader(process.getInputStream(), UTF_8))) {
-                return systemInformationReader
-                        .lines()
-                        .map(line -> line + System.lineSeparator())
-                        .collect(Collectors.joining())
-                        .trim();
-            }
-        }
-
-        /**
-         * Returns current system time.
-         * @return Current time as string
-         */
-        @SuppressWarnings("HardcodedFileSeparator")
-        public static String getTime() {
-            final WinBase.SYSTEMTIME time = new WinBase.SYSTEMTIME();
-            Kernel32.INSTANCE.GetSystemTime(time);
-            return time.wMonth + "/" + time.wDay + '/' + time.wYear + ' ' + time.wHour + ':' + time.wMinute;
-        }
-
-        /**
-         * Returns the network domain name associated with the current user.
-         * @return Current domain name as string
-         * @throws IllegalStateException if cannot retrieve the joined domain
-         */
-        @SuppressWarnings("StringSplitter")
-        public static String getCurrentDomainName() {
-            final char[] userNameBuf = new char[10000];
-            final IntByReference size = new IntByReference(userNameBuf.length);
-            final boolean result = Secur32.INSTANCE.GetUserNameEx(
-                    Secur32.EXTENDED_NAME_FORMAT.NameSamCompatible, userNameBuf, size);
-
-            if(!result)
-                throw new IllegalStateException("Cannot retrieve name of the currently joined domain");
-
-            return new String(userNameBuf, 0, size.getValue()).split("\\\\")[0];
-        }
-
-        /**
-         * Returns the current host name for the system.
-         * @return Current domain name as string
-         * @throws UnknownHostException if error occurs
-         */
-        public static String getCurrentMachineName() throws UnknownHostException {
-            return InetAddress.getLocalHost().getHostName();
-        }
-
-        /**
-         * Returns the current Registered Organization.
-         * @return Registered Organization as string
-         */
-        @SuppressWarnings("HardcodedFileSeparator")
-        public static String getRegisteredOrganization() {
-            final String key = "Software\\Microsoft\\Windows NT\\CurrentVersion";
-            final String value = "RegisteredOrganization";
-            return Registry.getStringValue(Registry.HKEY.LOCAL_MACHINE, key, value);
-        }
-
-        /**
-         * Returns the current Registered Owner.
-         * @return Registered Owner as string
-         */
-        @SuppressWarnings("HardcodedFileSeparator")
-        public static String getRegisteredOwner() {
-            final String key = "Software\\Microsoft\\Windows NT\\CurrentVersion";
-            final String value = "RegisteredOwner";
-            return Registry.getStringValue(Registry.HKEY.LOCAL_MACHINE, key, value);
-        }
-
-        /**
-         * Returns the current computer name.
-         * @return String value of current computer name
-         */
-        @SuppressWarnings("HardcodedFileSeparator")
-        public static String getComputerNameActive() {
-            final String key = "System\\ControlSet001\\Control\\ComputerName\\ActiveComputerName";
-            final String value = "ComputerName";
-            return Registry.getStringValue(Registry.HKEY.LOCAL_MACHINE, key, value);
-        }
-
-        /**
-         * Returns the pending computer name that it will update to on reboot.
-         * @return String value of the pending computer name
-         */
-        @SuppressWarnings("HardcodedFileSeparator")
-        public static String getComputerNamePending() {
-            final String key = "System\\ControlSet001\\Control\\ComputerName\\ComputerName";
-            final String value = "ComputerName";
-            final String text = Registry.getStringValue(Registry.HKEY.LOCAL_MACHINE, key, value);
-            return text.trim().isEmpty() ? "N/A" : text;
-        }
-
-        /** Prevents instantiation of this utility class. */
-        private SystemInfo() { }
     }
 
     /** Returns info about the currently logged in user account. */
@@ -556,7 +352,7 @@ public final class WindowsOSEx {
         @SuppressWarnings("HardcodedFileSeparator")
         public static String getEnvironmentVar(final String variableName) throws IOException, InterruptedException {
             final String varName = '%' + variableName + '%';
-            String variableValue = Command.run("cmd", "/C echo " + varName).getResult().get(0);
+            String variableValue = ExecutingCommand.runNewCmd("cmd").setArgs("/C echo " + varName).getResult().get(0);
             //execute(new String[] {"cmd.exe", "/C", "echo " + varName});
             variableValue = variableValue.replace("\"", "");
             checkArgument(!variableValue.equals(varName),
@@ -591,52 +387,11 @@ public final class WindowsOSEx {
             final String tmpFileName = getEnvironmentVar(
                     "TEMP").trim() + File.separator + "javawmi.vbs";
             writeStringToFile(tmpFileName, getVBScript(wmiQueryStr, wmiCommaSeparatedFieldName));
-            final String output = Command.run("cmd.exe", "/C cscript.exe " + tmpFileName)
+            final String output = ExecutingCommand.runNewCmd("cmd.exe").setArgs("/C cscript.exe " + tmpFileName)
                     .getResult().toString();
             Files.delete(Paths.get(tmpFileName));
 
             return output.trim();
-        }
-
-        @SuppressWarnings("UseOfSystemOutOrSystemErr")
-        public static void executeDemoQueries() throws IOException, InterruptedException {
-            System.out.println(getWMIValue("Select * FROM " + WMIClasses.OS.ComputerSystem,
-                    "Model"));
-            System.out.println(getWMIValue("Select Name FROM " + WMIClasses.OS.ComputerSystem,
-                    "Name"));
-            //System.out.println(getWMIValue("Select Description FROM Win32_PnPEntity", "Description"));
-            //System.out.println(getWMIValue("Select Description, Manufacturer FROM Win32_PnPEntity",
-            // "Description,Manufacturer"));
-            //System.out.println(getWMIValue("Select * FROM Win32_Service WHERE State = 'Stopped'", "Name"));
-            //this will return everything since the field is incorrect and was not used to a filter
-            //System.out.println(getWMIValue("Select * FROM Win32_Service", "Name"));
-            //this will return nothing since there is no field specified
-            System.out.println(getWMIValue("Select Name FROM " + WMIClasses.OS.ComputerSystem,
-                    ""));
-            //this is a failing case WHERE the Win32_Service class does not contain the 'Name' field
-            //System.out.println(getWMIValue("Select * FROM Win32_Service", "Name"));
-        }
-
-        /**
-         * Instantiate a WmiQuery.
-         *
-         * @param <T>
-         *            The enum type
-         * @param nameSpace
-         *            The WMI namespace to use.
-         * @param wmiClassName
-         *            The WMI class to use. Optionally include a WQL WHERE
-         *            clause with filters results to properties matching the
-         *            input.
-         * @param propertyEnum
-         *            An enum for type mapping.
-         * @return a new WMI Query object
-         */
-        public static <T extends Enum<T>> WbemcliUtil.WmiQuery<T> newWmiQuery(
-                final String nameSpace, final String wmiClassName, final Class<T> propertyEnum) {
-            checkArgumentNotNullOrEmpty(wmiClassName, "wmiClassName Cannot Be Null Or Empty!");
-            checkArgumentNotNull(propertyEnum, "propertyEnum Cannot Be Null!");
-            return new WbemcliUtil.WmiQuery<>(nameSpace, wmiClassName, propertyEnum);
         }
 
         /**
@@ -659,275 +414,11 @@ public final class WindowsOSEx {
         private WMI() { }
     }
 
-    /** Returns information from the Windows registry. */
-    public static final class Registry {
-        /**
-         * Gets string value from a registry key.
-         * @param hkey Root key to use to access key
-         * @param path Key path to access
-         * @param key Key name to access
-         * @return Key value as string
-         */
-        public static String getStringValue(final HKEY hkey, final String path, final String key) {
-            if(Advapi32Util.registryValueExists(hkey.getKeyObj(), path, key)) {
-                return Advapi32Util.registryGetStringValue(hkey.getKeyObj(), path, key);
-            }
-            return "";
-        }
-
-        /** A list of the different parent keys in the Windows Registry that are used in the {@link Registry} class. */
-        public enum HKEY {
-            CLASSES_ROOT(WinReg.HKEY_CLASSES_ROOT),
-            CURRENT_USER(WinReg.HKEY_CURRENT_USER),
-            LOCAL_MACHINE(WinReg.HKEY_LOCAL_MACHINE),
-            USERS(WinReg.HKEY_USERS),
-            PERFORMANCE_DATA(WinReg.HKEY_PERFORMANCE_DATA),
-            CURRENT_CONFIG(WinReg.HKEY_CURRENT_CONFIG);
-
-            final WinReg.HKEY keyObj;
-
-            HKEY(final WinReg.HKEY keyObj) {
-                this.keyObj = keyObj;
-            }
-
-            public WinReg.HKEY getKeyObj() {
-                return keyObj;
-            }
-        }
-
-        /** Prevents instantiation of this utility class. */
-        private Registry() { }
-    }
-
-    /** Allows you to run console commands and either run them elevated or not and return the result to a string. */
-    public static final class Command {
-
-        /**
-         * Runs command and returns results to ArrayList in Output object.
-         *
-         * @param command Command to run
-         * @param args    Arguments to pass to command
-         * @return Output object
-         * @throws IOException if error occurs
-         * @throws InterruptedException if command is interrupted
-         */
-        @SuppressWarnings({"CallToRuntimeExec", "HardcodedFileSeparator"})
-        public static Output run(final String command, final String args)
-                throws IOException, InterruptedException {
-            final Output newOutput = new Output();
-
-            final Process process;
-            if(isWindows()) {
-                final String cmdString = String.format("cmd /C \"%s %s\"", command, args);
-                process = Runtime.getRuntime().exec(cmdString);
-            } else {
-                process = Runtime.getRuntime().exec(command);
-            }
-
-            assert process != null;
-            try(final BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream(), UTF_8))) {
-                String line;
-                while((line = br.readLine()) != null) {
-                    newOutput.getResult().add(line);
-                }
-            }
-
-            try(final BufferedReader br = new BufferedReader(new InputStreamReader(process.getErrorStream(), UTF_8))) {
-                String line;
-                while((line = br.readLine()) != null) {
-                    newOutput.getErrors().add(line);
-                }
-            }
-
-            process.waitFor();
-
-            newOutput.setExitCode(process.exitValue());
-
-            return newOutput;
-        }
-
-        /**
-         * Runs command elevated, shows cmd window and pauses window when command is complete. <p>
-         * If OS is not Windows, command is not elevated.
-         *
-         * @param command Command to run
-         * @param args    Arguments to pass to command
-         * @throws IOException if error occurs
-         * @throws InterruptedException if command is interrupted
-         */
-        public static void runElevated(final String command, final String args)
-                throws IOException, InterruptedException {
-            runElevated(command, args, false, true);
-        }
-
-        /**
-         * Runs command elevated, shows cmd window and pauses window when command is complete. <p>
-         * If OS is not Windows, command is not elevated.
-         *
-         * @param command        Command to run
-         * @param args           Arguments to pass to command
-         * @param hideWindow     If true, cmd window will be hidden
-         * @param keepWindowOpen If true, pauses cmd window and forces it to stay open after command is completed <p>
-         *                       If false, cmd window will close after command is completed
-         *                       <p>
-         *                       This parameter is ignored if "hideWindow" is true, this prevents cmd window from staying
-         *                       open when hidden and unnecessarily using RAM
-         * @throws IOException if error occurs
-         * @throws InterruptedException if command is interrupted
-         */
-        @SuppressWarnings({"BooleanParameter", "CallToRuntimeExec"})
-        public static void runElevated(final String command, final String args,
-                                 final boolean hideWindow, final boolean keepWindowOpen)
-                throws IOException, InterruptedException {
-            if(isWindows()) {
-                final String filename = "temp.bat";
-
-                try(final Writer writer = Files.newBufferedWriter(Paths.get(filename), UTF_8)) {
-                    writer.write("@Echo off" + System.lineSeparator());
-                    writer.write('"' + command + "\" " + args + System.lineSeparator());
-                    if(keepWindowOpen && !hideWindow) { writer.write("pause"); }
-                }
-
-                final int windowStatus = hideWindow ? 0 : 1;
-                final String operation = "runas";
-
-                final WinDef.HWND hw = null;
-                //noinspection ConstantConditions
-                Shell32.INSTANCE.ShellExecute(hw, operation, filename, null, null, windowStatus);
-
-                Thread.sleep(2000);
-
-                Files.delete(Paths.get(filename));
-            } else {
-                final Process process;
-                process = Runtime.getRuntime().exec(command);
-
-                assert process != null;
-
-                process.waitFor();
-            }
-        }
-
-        /** Output object that is returned after the command has completed. */
-        @SuppressWarnings({"ClassExtendsConcreteCollection", "UseOfSystemOutOrSystemErr"})
-        public static class Output {
-            private final ArrayList<String> result = new ArrayList<String>() {
-                @Override
-                public String toString() {
-                    return result.stream()
-                            .filter(line -> !line.contains("Windows Script Host Version")
-                                    && !line.contains("Microsoft Corporation. All rights reserved.")
-                                    && !line.trim().isEmpty())
-                            .map(line -> line + System.lineSeparator()).collect(Collectors.joining());
-                }
-            };
-            private int exitCode;
-            private final List<String> errors = new ArrayList<>();
-
-            /**
-             * Returns the text result of the command.
-             * @return the text result of the command
-             */
-            public List<String> getResult() {
-                return result;
-            }
-
-            public List<String> getErrors() { return errors; }
-
-            /**
-             * Returns the exit code, returns 0 if no error occurred.
-             * @return the exit code, returns 0 if no error occurred
-             */
-            public int getExitCode() {
-                return exitCode;
-            }
-
-            public void print() { result.forEach(System.out::println); }
-
-            @Override
-            public boolean equals(final Object o) {
-                if (this == o) return true;
-
-                if (!(o instanceof Output)) return false;
-
-                final Output output = (Output) o;
-
-                return new EqualsBuilder()
-                        .append(getExitCode(), output.getExitCode())
-                        .append(result, output.result)
-                        .isEquals();
-            }
-
-            @Override
-            public int hashCode() {
-                return new HashCodeBuilder(17, 37)
-                        .append(result)
-                        .append(getExitCode())
-                        .toHashCode();
-            }
-
-            @Override
-            public String toString() {
-                return new ToStringBuilder(this)
-                        .append("result", result)
-                        .append("exitCode", getExitCode())
-                        .toString();
-            }
-
-            public void setExitCode(int exitCode) {
-                this.exitCode = exitCode;
-            }
-        }
-
-        /** Prevents instantiation of this utility class. */
-        private Command() { }
-    }
-
-    /** Gets And Decrypts The Current Product Key From The Registry. */
-    public static final class ProductKey {
-        /**
-         * Returns The Current Product Key From The Registry.
-         * @return The Current Product Key From The Registry
-         * @throws IOException if error occurs
-         * @throws InterruptedException if command is interrupted
-         */
-        public static String getKey() throws IOException, InterruptedException {
-            final URL inputUrl = ProductKey.class.getResource("/vbs/getProductKey.vbs");
-            final File dest = new File("getProductKey.vbs");
-            FileUtils.copyURLToFile(inputUrl, dest);
-            final String key = Command.run("cscript GetProductKey.vbs", "").getResult().toString();
-            dest.delete();
-            return key;
-        }
-    }
-
-    /**
-     * Identifies if OS is activated.
-     * @return true if activated, false if not activated
-     * @throws IOException if error occurs
-     */
-    public static boolean isActivated() throws IOException { return Activation.isActivated(); }
-
     /**
      * Identifies if OS is a Windows Server OS.
      * @return true if OS is a Windows Server OS
      */
     public static boolean isWindowsServer() { return Edition.isWindowsServer(); }
-
-    /**
-     * Identifies if OS is a Windows Domain Controller.
-     * @return true if OS is a Windows Server OS
-     */
-    public static boolean isWindowsDomainController() { return Edition.isWindowsDomainController(); }
-
-    /**
-     * Identifies if computer has joined a domain.
-     * @return true if computer has joined a domain
-     * @throws UnknownHostException if error occurs
-     */
-    public static boolean isDomainJoined() throws UnknownHostException {
-        return !SystemInfo.getCurrentMachineName().equals(SystemInfo.getCurrentDomainName());
-    }
 
     /**
      * Identifies if OS is XP or later.

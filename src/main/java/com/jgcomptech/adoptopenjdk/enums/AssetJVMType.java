@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 public enum AssetJVMType {
     NONE(""),
-    hotspot("hotspot"),
-    openj9("openj9");
+    Hotspot("hotspot"),
+    OpenJ9("openj9");
 
     final String value;
     AssetJVMType(final String value) {

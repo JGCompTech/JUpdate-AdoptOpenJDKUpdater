@@ -1,45 +1,32 @@
 package com.jgcomptech.adoptopenjdk;
 
 import com.jgcomptech.adoptopenjdk.api.APISettings;
-import com.jgcomptech.adoptopenjdk.api.BaseAssets;
-import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
-import com.jgcomptech.adoptopenjdk.enums.AssetName;
-import com.jgcomptech.adoptopenjdk.enums.ReleaseType;
+import com.jgcomptech.adoptopenjdk.enums.AssetType;
 import com.jgcomptech.adoptopenjdk.utils.IntegerValue;
-import com.jgcomptech.adoptopenjdk.utils.recentJava.CollectorsExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
-
-import static com.jgcomptech.adoptopenjdk.api.ReleaseProcessor.acquireNextReleasePage;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class JavaRelease {
-    public static final JavaRelease Java8 = new JavaRelease("Java 8", 8, "openjdk8-binaries");
-    public static final JavaRelease Java9 = new JavaRelease("Java 9", 9, "openjdk9-binaries");
-    public static final JavaRelease Java10 = new JavaRelease("Java 10", 10, "openjdk10-binaries");
-    public static final JavaRelease Java11 = new JavaRelease("Java 11", 11, "openjdk11-binaries");
-    public static final JavaRelease Java12 = new JavaRelease("Java 12", 12, "openjdk12-binaries");
-    public static final JavaRelease Java13 = new JavaRelease("Java 13", 13, "openjdk13-binaries");
-    public static final JavaRelease Java14 = new JavaRelease("Java 14", 14, "openjdk14-binaries");
-    public static final JavaRelease Java15 = new JavaRelease("Java 15", 15, "openjdk15-binaries");
+    public static final Map<String, JavaRelease> releases = new LinkedHashMap<>();
 
     private final String name;
     private final int majorBuild;
     private final String url;
-    private final BaseAssets jdkHotspotAssets = new BaseAssets(this);
-    private final BaseAssets jreHotspotAssets = new BaseAssets(this);
-    private final BaseAssets jdkOpenJ9Assets = new BaseAssets(this);
-    private final BaseAssets jreOpenJ9Assets = new BaseAssets(this);
+    private final SubRelease jdkHotspot = new SubRelease(AssetType.JDKHotspot, this);
+    private final SubRelease jdkOpenJ9 = new SubRelease(AssetType.JDKOpenJ9, this);
+    private final SubRelease jreHotspot = new SubRelease(AssetType.JREHotspot, this);
+    private final SubRelease jreOpenJ9 = new SubRelease(AssetType.JREOpenJ9, this);
     private final IntegerValue pageCount = new IntegerValue(1);
     private final IntegerValue releaseCount = new IntegerValue(APISettings.getNumberOfReleasesPerPage());
     private final Logger logger = LoggerFactory.getLogger(JavaRelease.class);
 
-    public JavaRelease(final String name, final int majorBuild, final String url) {
-        this.name = name;
+    public JavaRelease(final int majorBuild) {
         this.majorBuild = majorBuild;
-        this.url = url;
+        this.name = "java" + majorBuild;
+        this.url = "openjdk" + majorBuild + "-binaries";
     }
 
     public String getName() {
@@ -54,20 +41,20 @@ public class JavaRelease {
         return url;
     }
 
-    public BaseAssets getJdkHotspotAssets() {
-        return jdkHotspotAssets;
+    public SubRelease getJdkHotspot() {
+        return jdkHotspot;
     }
 
-    public BaseAssets getJreHotspotAssets() {
-        return jreHotspotAssets;
+    public SubRelease getJdkOpenJ9() {
+        return jdkOpenJ9;
     }
 
-    public BaseAssets getJdkOpenJ9Assets() {
-        return jdkOpenJ9Assets;
+    public SubRelease getJreHotspot() {
+        return jreHotspot;
     }
 
-    public BaseAssets getJreOpenJ9Assets() {
-        return jreOpenJ9Assets;
+    public SubRelease getJreOpenJ9() {
+        return jreOpenJ9;
     }
 
     public int getPageCount() {
@@ -78,109 +65,13 @@ public class JavaRelease {
         return releaseCount.get();
     }
 
-    public JavaRelease incrementPageCount() {
+    public void incrementPageAndReleaseCount() {
         pageCount.increment();
-        return this;
-    }
-
-    public JavaRelease decrementPageCount() {
-        pageCount.decrement();
-        return this;
-    }
-
-    public JavaRelease resetPageCount() {
-        pageCount.set(1);
-        return this;
-    }
-
-    public JavaRelease incrementReleaseCount() {
         releaseCount.add(APISettings.getNumberOfReleasesPerPage());
-        return this;
     }
 
-    public JavaRelease decrementReleaseCount() {
-        releaseCount.subtract(APISettings.getNumberOfReleasesPerPage());
-        return this;
-    }
-
-    public JavaRelease resetReleaseCount() {
-        releaseCount.set(APISettings.getNumberOfReleasesPerPage());
-        return this;
-    }
-
-    public boolean isAlljdkHotspotAssetsAcquired() {
-        return jdkHotspotAssets.isAllAcquired();
-    }
-
-    public boolean isAlljreHotspotAssetsAcquired() {
-        return jreHotspotAssets.isAllAcquired();
-    }
-
-    public boolean isAlljdkOpenJ9AssetsAcquired() {
-        return jdkOpenJ9Assets.isAllAcquired();
-    }
-
-    public boolean isAlljreOpenJ9AssetsAcquired() {
-        return jreOpenJ9Assets.isAllAcquired();
-    }
-
-    @SuppressWarnings("UnusedReturnValue")
-    public JavaRelease processReleases(final ReleaseType type, final AssetJVMType jvmType) throws IOException {
-        logger.info("~ Processing Java " + majorBuild + ' ' + type + ' ' + jvmType + "...");
-        boolean allAcquired;
-        do {
-            allAcquired = acquireNextReleasePage(this, type, jvmType);
-        } while(!allAcquired);
-        return this;
-    }
-
-    public List<AssetName> getMissingJDKAssets() {
-        return jdkHotspotAssets.getEnabledAssets().stream()
-                .filter(asset -> !jdkHotspotAssets.contains(asset)).collect(CollectorsExt.toUnmodifiableList());
-    }
-
-    public List<AssetName> getMissingJREAssets() {
-        return jreHotspotAssets.getEnabledAssets().stream()
-                .filter(asset -> !jreHotspotAssets.contains(asset)).collect(CollectorsExt.toUnmodifiableList());
-    }
-
-    public List<AssetName> getExtraJDKAssets() {
-        return jdkHotspotAssets.getAll().keySet().stream()
-                .filter(asset -> !jdkHotspotAssets.getEnabledAssets().contains(asset))
-                .collect(CollectorsExt.toUnmodifiableList());
-    }
-
-    public List<AssetName> getExtraJREAssets() {
-        return jreHotspotAssets.getAll().keySet().stream()
-                .filter(asset -> !jreHotspotAssets.getEnabledAssets().contains(asset))
-                .collect(CollectorsExt.toUnmodifiableList());
-    }
-
-    @SuppressWarnings("UnusedReturnValue")
-    public JavaRelease printMissingJDKAssets() {
-        getMissingJDKAssets()
-                .forEach(a -> logger.debug("!!" + name + " JDK Asset NOT FOUND: " + a.name() + "!!"));
-        return this;
-    }
-
-    @SuppressWarnings("UnusedReturnValue")
-    public JavaRelease printMissingJREAssets() {
-        getMissingJREAssets()
-                .forEach(a -> logger.debug("!!" + name + " JRE Asset NOT FOUND: " + a.name() + "!!"));
-        return this;
-    }
-
-    @SuppressWarnings("UnusedReturnValue")
-    public JavaRelease printExtraJDKAssets() {
-        getExtraJDKAssets()
-                .forEach(a -> logger.debug("!!Unexpected " + name + " JDK Asset FOUND: " + a.name() + "!!"));
-        return this;
-    }
-
-    @SuppressWarnings("UnusedReturnValue")
-    public JavaRelease printExtraJREAssets() {
-        getExtraJREAssets()
-                .forEach(a -> logger.debug("!!Unexpected " + name + " JRE Asset FOUND: " + a.name() + "!!"));
-        return this;
+    @Override
+    public String toString() {
+        return "Java " + majorBuild;
     }
 }

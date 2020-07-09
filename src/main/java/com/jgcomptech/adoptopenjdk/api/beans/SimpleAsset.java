@@ -1,10 +1,9 @@
 package com.jgcomptech.adoptopenjdk.api.beans;
 
-import com.jgcomptech.adoptopenjdk.api.classes.Filename;
+import com.jgcomptech.adoptopenjdk.api.Filename;
+import com.jgcomptech.adoptopenjdk.api.Version;
 import com.jgcomptech.adoptopenjdk.enums.*;
 import com.jgcomptech.adoptopenjdk.utils.Utils;
-
-import java.util.Locale;
 
 @SuppressWarnings("FieldNotUsedInToString")
 public final class SimpleAsset {
@@ -13,16 +12,19 @@ public final class SimpleAsset {
     private final Filename filename;
     private final AssetName assetName;
     private final AssetJVMType jvmType;
-    private final ReleaseType releaseType;
+    private final AssetReleaseType releaseType;
     private final String content_type;
     private final int size;
     private final String created_at;
     private final String updated_at;
     private final String browser_download_url;
+    private final Version version;
+    private final SimpleRelease parent;
 
-    private SimpleAsset(final String url, final int id, final String filename, final String content_type,
-                        final int size, final String created_at, final String updated_at,
-                        final String browser_download_url) {
+    private SimpleAsset(final SimpleRelease parent, final String url, final int id, final String filename,
+                        final String content_type, final int size, final String created_at,
+                        final String updated_at, final String browser_download_url) {
+        this.parent = parent;
         this.url = url;
         this.id = id;
         this.filename = new Filename(filename);
@@ -31,9 +33,18 @@ public final class SimpleAsset {
         this.created_at = created_at;
         this.updated_at = updated_at;
         this.browser_download_url = browser_download_url;
-        jvmType = AssetJVMType.parseFromName(this.filename.getBaseName().toLowerCase(Locale.getDefault()));
+        jvmType = AssetJVMType.parseFromName(this.filename.getBaseName());
         assetName = AssetName.parseFromName(this.filename.getFullName());
-        releaseType = ReleaseType.parseFromName(this.filename.getBaseName());
+        releaseType = AssetReleaseType.parseFromName(this.filename.getBaseName());
+        version = new Version(getParent().getTagName());
+    }
+
+    public SimpleRelease getParent() {
+        return parent;
+    }
+
+    public Version getVersion() {
+        return version;
     }
 
     public String getUrl() {
@@ -83,28 +94,28 @@ public final class SimpleAsset {
     }
 
     public int getMajorVersion() {
-        final String temp = filename.getBaseName().replace("OpenJDK", "");
-        return Integer.parseInt(temp.substring(0, temp.indexOf("U-")));
+        final String temp = filename.getBaseName().replace("openjdk", "");
+        return Integer.parseInt(temp.substring(0, temp.indexOf("-")).replace("u", ""));
     }
 
     @SuppressWarnings("StringConcatenationMissingWhitespace")
     public boolean isMajorVersion(final int version) {
-        return filename.getBaseName().contains("OpenJDK" + version + 'U');
+        return filename.getBaseName().contains("openjdk" + version);
     }
 
     public boolean isJDK() {
-        return releaseType == ReleaseType.JDK;
+        return releaseType == AssetReleaseType.JDK;
     }
 
     public boolean isJRE() {
-        return releaseType == ReleaseType.JRE;
+        return releaseType == AssetReleaseType.JRE;
     }
 
     public boolean isTestImage() {
-        return releaseType == ReleaseType.TestImage;
+        return releaseType == AssetReleaseType.TestImage;
     }
 
-    public ReleaseType getReleaseType() {
+    public AssetReleaseType getReleaseType() {
         return releaseType;
     }
 
@@ -143,6 +154,7 @@ public final class SimpleAsset {
 
     @SuppressWarnings("ClassHasNoToStringMethod")
     public static final class Builder {
+        private SimpleRelease parent;
         private String url;
         private int id;
         private String fileName;
@@ -153,6 +165,11 @@ public final class SimpleAsset {
         private String browser_download_url;
 
         private Builder() {}
+
+        public Builder setParent(final SimpleRelease parent) {
+            this.parent = parent;
+            return this;
+        }
 
         public Builder setUrl(final String url) {
             this.url = url;
@@ -195,7 +212,7 @@ public final class SimpleAsset {
         }
 
         public SimpleAsset build() {
-            return new SimpleAsset(url, id, fileName, content_type, size,
+            return new SimpleAsset(parent, url, id, fileName, content_type, size,
                     created_at, updated_at, browser_download_url);
         }
     }

@@ -1,75 +1,520 @@
 {
-    java8disabledOS: [
-    ]
-    java9disabledOS: [
-        arm_linux
-        sparcv9_solaris
-        x64_solaris
-        x86-32_windows
-    ]
-    java10disabledOS: [
-        sparcv9_solaris
-        x64_solaris
-        x86-32_windows
-    ]
-    java11disabledOS: [
-        sparcv9_solaris
-        x64_solaris
-    ]
-    java12disabledOS: [
-        sparcv9_solaris
-        x64_solaris
-    ]
-    java13disabledOS: [
-        sparcv9_solaris
-        x64_solaris
-    ]
-    java14disabledOS: [
-        sparcv9_solaris
-        x64_solaris
-    ]
-    java15disabledOS: [
-        sparcv9_solaris
-        x64_solaris
-    ]
-    java8disabledAssets: [
-    ]
-    java9disabledAssets: [
-        aarch64_linux_tar_gz_json
-        ppc64le_linux_tar_gz_json
-        ppc64_aix_tar_gz_json
-        s390x_linux_tar_gz_json
-        x64_linux_tar_gz_json
-        x64_mac_tar_gz_json
-        x64_windows_zip_json
-    ]
-    java10disabledAssets: [
-        aarch64_linux_tar_gz_json
-        arm_linux_tar_gz_json
-        ppc64le_linux_tar_gz_json
-        ppc64_aix_tar_gz_json
-        s390x_linux_tar_gz_json
-        x64_linux_tar_gz_json
-        x64_mac_tar_gz_json
-        x64_windows_zip_json
-    ]
-    java11disabledAssets: [
-    ]
-    java12disabledAssets: [
-        ppc64_aix_tar_gz_json
-    ]
-    java13disabledAssets: [
-    ]
-    java14disabledAssets: [
-    ]
-    java15disabledAssets: [
-    ]
-    java8disableInstallers: false
-    java9disableInstallers: true
-    java10disableInstallers: true
-    java11disableInstallers: false
-    java12disableInstallers: false
-    java13disableInstallers: false
-    java14disableInstallers: false
-    java15disableInstallers: false
+  releases:
+  {
+    java8:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          arm_linux
+          aarch64_linux
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jrehotspot:
+      {
+        disabledOS: []
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          arm_linux
+          aarch64_linux
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jdkhotspot:
+      {
+        disabledOS: []
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+    }
+    java9:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          NONE
+          aarch64_linux
+          arm_linux
+          ppc64_aix
+          ppc64le_linux
+          ppc64le_linux_linuxXL
+          s390x_linux
+          s390x_linux_linuxXL
+          sparcv9_solaris
+          x64_linux
+          x64_linux_linuxXL
+          x64_mac_macosXL
+          x64_mac
+          x64_solaris
+          x64_windows
+          x64_windows_windowsXL
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jrehotspot:
+      {
+        disabledOS:
+        [
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+          ppc64_aix
+        ]
+        disabledAssets:
+        [
+          aarch64_linux_tar_gz_json
+          ppc64le_linux_tar_gz_json
+          ppc64_aix_tar_gz_json
+          s390x_linux_tar_gz_json
+          x64_linux_tar_gz_json
+          x64_mac_tar_gz_json
+          x64_windows_zip_json
+        ]
+        installersDisabled: true
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_mac
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets:
+        [
+          ppc64le_linux_tar_gz_json
+          ppc64_aix_tar_gz_json
+          s390x_linux_tar_gz_json
+          x64_linux_tar_gz_json
+          x64_windows_zip_json
+        ]
+        installersDisabled: true
+        xldisabled: true
+      }
+      jdkhotspot:
+      {
+        disabledOS:
+        [
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets:
+        [
+          aarch64_linux_tar_gz_json
+          ppc64le_linux_tar_gz_json
+          ppc64_aix_tar_gz_json
+          s390x_linux_tar_gz_json
+          x64_linux_tar_gz_json
+          x64_mac_tar_gz_json
+          x64_windows_zip_json
+        ]
+        installersDisabled: true
+        xldisabled: true
+      }
+    }
+    java10:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          NONE
+          aarch64_linux
+          arm_linux
+          ppc64_aix
+          ppc64le_linux
+          ppc64le_linux_linuxXL
+          s390x_linux
+          s390x_linux_linuxXL
+          sparcv9_solaris
+          x64_linux
+          x64_linux_linuxXL
+          x64_mac_macosXL
+          x64_mac
+          x64_solaris
+          x64_windows
+          x64_windows_windowsXL
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: true
+        xldisabled: true
+      }
+      jrehotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets:
+        [
+          aarch64_linux_tar_gz_json
+          arm_linux_tar_gz_json
+          ppc64le_linux_tar_gz_json
+          ppc64_aix_tar_gz_json
+          s390x_linux_tar_gz_json
+          x64_linux_tar_gz_json
+          x64_mac_tar_gz_json
+          x64_windows_zip_json
+        ]
+        installersDisabled: true
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_mac
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets:
+        [
+          ppc64le_linux_tar_gz_json
+          ppc64_aix_tar_gz_json
+          s390x_linux_tar_gz_json
+          x64_linux_tar_gz_json
+          x64_windows_zip_json
+        ]
+        installersDisabled: true
+        xldisabled: true
+      }
+      jdkhotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets:
+        [
+          aarch64_linux_tar_gz_json
+          arm_linux_tar_gz_json
+          ppc64le_linux_tar_gz_json
+          ppc64_aix_tar_gz_json
+          s390x_linux_tar_gz_json
+          x64_linux_tar_gz_json
+          x64_mac_tar_gz_json
+          x64_windows_zip_json
+        ]
+        installersDisabled: true
+        xldisabled: true
+      }
+    }
+    java11:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jrehotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jdkhotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+    }
+    java12:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+          ppc64le_linux_linuxXL
+          s390x_linux_linuxXL
+        ]
+        disabledAssets:
+        [
+          ppc64_aix_tar_gz_json
+        ]
+        installersDisabled: false
+        xldisabled: false
+      }
+      jrehotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+          arm_linux
+        ]
+        disabledAssets:
+        [
+          ppc64_aix_tar_gz_json
+        ]
+        installersDisabled: false
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+          ppc64le_linux_linuxXL
+          s390x_linux_linuxXL
+        ]
+        disabledAssets:
+        [
+          ppc64_aix_tar_gz_json
+        ]
+        installersDisabled: false
+        xldisabled: false
+      }
+      jdkhotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets:
+        [
+          ppc64_aix_tar_gz_json
+        ]
+        installersDisabled: false
+        xldisabled: true
+      }
+    }
+    java13:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jrehotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+          arm_linux
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jdkhotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+    }
+    java14:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jrehotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          aarch64_linux
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: false
+      }
+      jdkhotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+    }
+    java15:
+    {
+      jreopenJ9:
+      {
+        disabledOS:
+        [
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jrehotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jdkopenJ9:
+      {
+        disabledOS:
+        [
+          arm_linux
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+      jdkhotspot:
+      {
+        disabledOS:
+        [
+          sparcv9_solaris
+          x64_solaris
+          x86_32_windows
+        ]
+        disabledAssets: []
+        installersDisabled: false
+        xldisabled: true
+      }
+    }
+  }
 }

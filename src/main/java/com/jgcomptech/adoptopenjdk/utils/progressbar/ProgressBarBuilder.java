@@ -48,6 +48,11 @@ public class ProgressBarBuilder {
         return this;
     }
 
+    public ProgressBarBuilder useDefaultProgressBarRenderer() {
+        renderer = new DefaultProgressBarRenderer(style, unitName, unitSize, showSpeed, speedFormat);
+        return this;
+    }
+
     public void setRenderer(final ProgressBarRenderer renderer) {
         this.renderer = renderer;
     }
