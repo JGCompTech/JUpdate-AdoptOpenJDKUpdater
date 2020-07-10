@@ -130,7 +130,7 @@ public class Download extends Observable implements Runnable {
 
     // Download file.
     public void run() {
-        Path filePath = null;
+        Path filePath;
         RandomAccessFile file = null;
         InputStream stream = null;
 

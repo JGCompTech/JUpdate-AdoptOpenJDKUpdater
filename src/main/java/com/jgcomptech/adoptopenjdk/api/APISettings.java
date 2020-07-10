@@ -1,6 +1,6 @@
 package com.jgcomptech.adoptopenjdk.api;
 
-import com.jgcomptech.adoptopenjdk.JUpdateApp;
+import com.jgcomptech.adoptopenjdk.Main;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,22 +9,16 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
+import static com.jgcomptech.adoptopenjdk.utils.Literals.FILE_SEPARATOR;
+
 public final class APISettings {
-    private static String companyName = "AdoptOpenJDK";
+
     private static String oAuth_client_id = "";
     private static String oAuth_client_secret = "";
     private static int numberOfReleasesPerPage = 10;
     private static boolean useOAuth;
 
     private APISettings() { }
-
-    public static String getCompanyName() {
-        return companyName;
-    }
-
-    public static void setCompanyName(final String companyName) {
-        APISettings.companyName = companyName;
-    }
 
     public static String getOAuth_client_id() {
         return oAuth_client_id;
@@ -51,10 +45,7 @@ public final class APISettings {
     }
 
     public static boolean isUseOAuth() {
-        if(oAuth_client_id.isEmpty() || oAuth_client_secret.isEmpty()) {
-            return false;
-        }
-        return useOAuth;
+        return (!oAuth_client_id.isEmpty() && !oAuth_client_secret.isEmpty()) && useOAuth;
     }
 
     public static void setUseOAuth(final boolean useOAuth) {
@@ -63,7 +54,16 @@ public final class APISettings {
 
     public static void loadPropertiesFile() throws IOException {
         final Properties properties = new Properties();
-        final File external = new File("app.properties");
+        File external = new File("app.properties");
+
+        if(!external.exists()) {
+            String path = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath()
+                    .replace("/", FILE_SEPARATOR).substring(1);
+            if(path.endsWith("jar")) {
+                path = path.substring(0, path.lastIndexOf(FILE_SEPARATOR));
+            }
+            external = new File(path + FILE_SEPARATOR + "app.properties");
+        }
 
         if (external.exists()) {
             //If external file exists load that
@@ -72,9 +72,6 @@ public final class APISettings {
                         fis, StandardCharsets.UTF_8)) {
                 properties.load(in);
             }
-        } else {
-            //If external file does not exist load embedded file
-            properties.load(JUpdateApp.class.getClassLoader().getResourceAsStream("app.properties"));
         }
 
         oAuth_client_id = properties.getProperty("client_id", "");

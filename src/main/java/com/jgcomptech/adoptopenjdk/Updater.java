@@ -6,7 +6,6 @@ import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
 import com.jgcomptech.adoptopenjdk.enums.AssetReleaseType;
 import com.jgcomptech.adoptopenjdk.enums.DLStatus;
 import com.jgcomptech.adoptopenjdk.utils.Download;
-import com.jgcomptech.adoptopenjdk.utils.info.OSInfo;
 import com.jgcomptech.adoptopenjdk.utils.osutils.ExecutingCommand;
 import com.jgcomptech.adoptopenjdk.utils.osutils.windows.Registry;
 import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBar;
@@ -26,7 +25,9 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.jgcomptech.adoptopenjdk.Settings.*;
 import static com.jgcomptech.adoptopenjdk.utils.Literals.FILE_SEPARATOR;
+import static com.jgcomptech.adoptopenjdk.utils.info.OSInfo.isWindows;
 import static com.jgcomptech.adoptopenjdk.utils.osutils.windows.Registry.HKEY.LOCAL_MACHINE;
 
 public class Updater {
@@ -40,9 +41,11 @@ public class Updater {
 
     public Updater(final SubRelease release, final SimpleAsset asset) throws IOException {
         this.release = release;
-        getVersionStringsFromRegistry().forEach(v -> installed.put(v.getBasic(), v));
 
-        getVersionStringsFromProgramFiles().forEach(v -> installed.put(v.getBasic(), v));
+        if(isWindows()) {
+            getVersionStringsFromRegistry().forEach(v -> installed.put(v.getBasic(), v));
+            getVersionStringsFromProgramFiles().forEach(v -> installed.put(v.getBasic(), v));
+        }
 
         latestVersion = asset.getVersion();
 
@@ -54,7 +57,6 @@ public class Updater {
                     needsUpdate = latestVersion.isNewerThen(currentVersion);
                 }
             }
-
         }
 
         if(!isInstalled) needsUpdate = true;
@@ -81,61 +83,33 @@ public class Updater {
     }
 
     public List<Version> getVersionStringsFromRegistry() {
-        if (release.getReleaseType() == AssetReleaseType.JDK) {
-            boolean exists = Registry.keyExists(LOCAL_MACHINE,
-                    "SOFTWARE\\AdoptOpenJDK\\JDK");
+        String path = release.getReleaseType() == AssetReleaseType.JDK ? JDK_REGISTRY_PATH : JRE_REGISTRY_PATH;
 
-            if(exists) {
-                List<String> results = Registry.getKeys(LOCAL_MACHINE,"SOFTWARE\\AdoptOpenJDK\\JDK");
-                List<Version> versions = new ArrayList<>();
-                for (String r : results) {
-                    boolean matches = false;
+        boolean exists = Registry.keyExists(LOCAL_MACHINE, path);
 
-                    if (release.getJvmType() == AssetJVMType.Hotspot
-                            && Registry.keyExists(LOCAL_MACHINE,
-                            "SOFTWARE\\AdoptOpenJDK\\JDK\\" + r + "\\hotspot")) {
-                        matches = true;
-                    } else if (release.getJvmType() == AssetJVMType.OpenJ9
-                            && Registry.keyExists(LOCAL_MACHINE,
-                            "SOFTWARE\\AdoptOpenJDK\\JDK\\" + r + "\\openj9")) {
-                        matches = true;
-                    }
+        if(exists) {
+            List<String> results = Registry.getKeys(LOCAL_MACHINE, path);
+            List<Version> versions = new ArrayList<>();
+            for (String r : results) {
+                boolean matches = false;
 
-                    if(matches) versions.add(new Version(r, true));
+                if (release.getJvmType() == AssetJVMType.Hotspot
+                        && Registry.keyExists(LOCAL_MACHINE, path + r + "\\hotspot")) {
+                    matches = true;
+                } else if (release.getJvmType() == AssetJVMType.OpenJ9
+                        && Registry.keyExists(LOCAL_MACHINE, path + r + "\\openj9")) {
+                    matches = true;
                 }
-                return versions;
+
+                if(matches) versions.add(new Version(r, true));
             }
-        } else if (release.getReleaseType() == AssetReleaseType.JRE) {
-            boolean exists = Registry.keyExists(LOCAL_MACHINE,
-                    "SOFTWARE\\AdoptOpenJDK\\JRE");
-
-            if(exists) {
-                List<String> results = Registry.getKeys(LOCAL_MACHINE,"SOFTWARE\\AdoptOpenJDK\\JRE");
-                List<Version> versions = new ArrayList<>();
-                for (String r : results) {
-                    boolean matches = false;
-
-                    if (release.getJvmType() == AssetJVMType.Hotspot
-                            && Registry.keyExists(LOCAL_MACHINE,
-                            "SOFTWARE\\AdoptOpenJDK\\JRE\\" + r + "\\hotspot")) {
-                        matches = true;
-                    } else if (release.getJvmType() == AssetJVMType.OpenJ9
-                            && Registry.keyExists(LOCAL_MACHINE,
-                            "SOFTWARE\\AdoptOpenJDK\\JRE\\" + r + "\\openj9")) {
-                        matches = true;
-                    }
-
-                    if(matches) versions.add(new Version(r, true));
-                }
-                return versions;
-            }
+            return versions;
         }
-
         return new ArrayList<>();
     }
 
     public List<Version> getVersionStringsFromProgramFiles() throws IOException {
-        final Path directory = Paths.get("C:\\Program Files\\AdoptOpenJDK");
+        final Path directory = Paths.get(WINDOWS_DEFAULT_INSTALL_PATH);
 
         final List<Version> versions = new ArrayList<>();
 
@@ -241,7 +215,8 @@ public class Updater {
     public void runInstall(final String filename) throws FileNotFoundException {
         final File localFile = new File(filename);
         if(localFile.exists() && !localFile.isDirectory()) {
-            if(OSInfo.isWindows()) {
+            if(isWindows()) {
+                logger.info("Running installer...");
                 try {
                     ExecutingCommand.runNewCmd("msiexec /i \"" + filename + "\"");
                 } catch (final InterruptedException | IOException e) {

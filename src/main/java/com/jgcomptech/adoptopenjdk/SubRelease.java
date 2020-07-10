@@ -24,13 +24,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.jgcomptech.adoptopenjdk.Argument.BOOLEAN;
-import static com.jgcomptech.adoptopenjdk.Argument.PRERELEASE;
+import static com.jgcomptech.adoptopenjdk.Settings.COMPANY_NAME;
 import static com.jgcomptech.adoptopenjdk.api.APISettings.*;
 
 public class SubRelease {
     private final Logger logger = LoggerFactory.getLogger(SubRelease.class);
-
     private final AssetType assetType;
     private final JavaRelease parent;
     private final BaseAssets assets;
@@ -65,17 +63,13 @@ public class SubRelease {
         return assets;
     }
 
-    public SubRelease processReleases() throws IOException {
-        return processReleases(new Arguments());
-    }
-
     @SuppressWarnings("UnusedReturnValue")
-    public SubRelease processReleases(final Arguments arguments) throws IOException {
+    public SubRelease processReleases(final boolean prerelease, final boolean showBoolean) throws IOException {
         logger.info("~ Processing Java " + parent.getMajorBuild() + ' ' + assetType.toString() + "...");
 
         boolean allAssetsAcquired = false;
 
-        if(!Loggers.RootPackage.getLogger().isDebugEnabled() && !arguments.exists(BOOLEAN)) {
+        if(!Loggers.RootPackage.getLogger().isDebugEnabled() && !showBoolean) {
             try (final ProgressBar pb = new ProgressBarBuilder()
                     .setTaskName("")
                     .setInitialMax(getAssets().getEnabledAssets().size())
@@ -84,13 +78,13 @@ public class SubRelease {
                     .build()) {
                 while(!allAssetsAcquired) {
                     allAssetsAcquired =
-                            acquireNextReleasePage(this, arguments.exists(PRERELEASE), pb);
+                            acquireNextReleasePage(this, prerelease, pb);
                 }
             }
         } else {
             while(!allAssetsAcquired) {
                 allAssetsAcquired =
-                        acquireNextReleasePage(this, arguments.exists(PRERELEASE), null);
+                        acquireNextReleasePage(this, prerelease, null);
             }
         }
 
@@ -121,12 +115,12 @@ public class SubRelease {
         //Create the API URL depending on if OAuth information has been provided.
         //noinspection IfMayBeConditional
         if (isUseOAuth()) {
-            fullUrl = String.format(fullUrlMask, getCompanyName(), releaseUrl,
+            fullUrl = String.format(fullUrlMask, COMPANY_NAME, releaseUrl,
                     baseRelease.getPageCount(), getNumberOfReleasesPerPage(),
                     getOAuth_client_id(), getOAuth_client_secret());
         }
         else {
-            fullUrl = String.format(shortUrlMask, getCompanyName(), releaseUrl,
+            fullUrl = String.format(shortUrlMask, COMPANY_NAME, releaseUrl,
                     baseRelease.getPageCount(), getNumberOfReleasesPerPage());
         }
 

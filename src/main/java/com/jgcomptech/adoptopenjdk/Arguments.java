@@ -1,118 +1,196 @@
 package com.jgcomptech.adoptopenjdk;
 
-import ch.qos.logback.classic.Level;
-import com.jgcomptech.adoptopenjdk.utils.logging.Loggers;
-import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import picocli.CommandLine;
 
-import static com.jgcomptech.adoptopenjdk.Argument.*;
+import java.io.IOException;
+import java.util.concurrent.Callable;
 
-public class Arguments {
-//        JUpdate v0.1.0 - AdoptOpenJDK Updater
-//
-//        usage: JUpdate [-?] [-a <Asset Name>] [-b] [-d <Download Path>] [-debug]
-//       [-h] [-i <Download Path>] [-info] [-j9] [-jdk] [-jre] [-pre] [-r]
-//       [-trace] [-v <Java Version>]
-//        -?,--help                       shows the help menu
-//        -a,--asset <Asset Name>         sets the asset name to install
-//        -b,--boolean                    enables minimal output
-//        -d,--download <Download Path>   downloads the installer
-//        -debug,--debug                  enables debug logging
-//        -h,--hotspot                    enables usage of hotspot jvm type
-//        -i,--install <Download Path>    downloads and installs the installer
-//        -info,--showassetinfo           shows info about the os appropriate asset
-//        -j9,--openj9                    enables usage of openj9 jvm type
-//        -jdk,--jdk                      enables usage of jdk
-//        -jre,--jre                      enables usage of jre
-//        -pre,--prerelease               enables use of prerelease assets
-//        -r,--refresh                    overwrites the exclusions file
-//        -trace,--trace                  enables trace logging
-//        -v,--version <Java Version>     checks for updates to java
+import static com.jgcomptech.adoptopenjdk.Settings.APP_VERSION;
+import static com.jgcomptech.adoptopenjdk.Settings.CURRENT_LTS;
+import static picocli.CommandLine.Command;
+import static picocli.CommandLine.Option;
 
-
+@Command(name = "jupdate", version = APP_VERSION,
+        description = "A basic Java updater for AdoptOpenJDK.",
+        optionListHeading = "%nOptions:%n")
+public class Arguments implements Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(Arguments.class);
-    private final CommandLine line;
+    private CommandLine cmd;
 
-    public Arguments(final String... args) {
-        line = parse(args);
-        if(exists(BOOLEAN)) Loggers.RootPackage.enableLimitedConsole(Level.OFF);
-        if(exists(DEBUG)) Loggers.RootPackage.enableLimitedConsole(Level.DEBUG);
-        if(exists(TRACE)) Loggers.RootPackage.enableLimitedConsole(Level.TRACE);
+    public CommandLine getCmd() {
+        return cmd;
+    }
+
+    public void setCmd(CommandLine cmd) {
+        this.cmd = cmd;
+    }
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-version", "--version"}, versionHelp = true, description = "display version info")
+    private boolean versionInfoRequested = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-?", "--help"}, usageHelp = true, description = "display this help message")
+    private boolean usageHelpRequested = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-jv", "--javaVersion"}, arity = "0..1",
+            defaultValue = "11", fallbackValue = "11",
+            description = "the version of java to lookup (default: ${DEFAULT-VALUE}),\n" +
+                    "if specified without parameter: ${FALLBACK-VALUE}")
+    private int version = CURRENT_LTS;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-debug", "--debug"}, description = "enables debug logging")
+    private boolean debug = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-trace", "--trace"}, description = "enables trace logging")
+    private boolean trace = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-jdk", "--jdk"}, description = "enables usage of jdk (default)")
+    private boolean jdk = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-jre", "--jre"}, description = "enables usage of jre")
+    private boolean jre = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-h", "--hotspot"}, description = "enables usage of hotspot jvm type (default)")
+    private boolean hotspot = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-j9", "--openj9"}, description = "enables usage of openj9 jvm type")
+    private boolean openJ9 = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-a", "--asset"}, description = "sets the asset name to install")
+    private String asset = "";
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-r", "--refresh"}, description = "overwrites the exclusions file")
+    private boolean refresh = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-info", "--showassetinfo"}, description = "shows info about the os appropriate asset")
+    private boolean showAssetInfo = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-b", "--boolean"}, description = "enables minimal output")
+    private boolean showBoolean = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-pre", "--prerelease"}, description = "enables use of prerelease assets")
+    private boolean prerelease = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-i", "--install"}, description = "downloads and installs the installer")
+    private boolean install = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-d", "--download"}, description = "downloads the installer")
+    private boolean download = false;
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-dp", "--downloadpath"}, description = "sets the path to download to")
+    private String downloadPath = "";
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-apiid", "--apiid"}, description = "sets the id for api usage\n" +
+            "(is ignored if both id and secret are not specified)")
+    private String apiID = "";
+
+    @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
+    @Option(names = {"-apisecret", "--apisecret"}, description = "sets the secret for api usage\n" +
+            "(is ignored if both id and secret are not specified)")
+    private String apiSecret = "";
+
+    public boolean isVersionInfoRequested() {
+        return versionInfoRequested;
+    }
+
+    public boolean isUsageHelpRequested() {
+        return usageHelpRequested;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public boolean isTrace() {
+        return trace;
+    }
+
+    public boolean isJdk() {
+        return jdk;
+    }
+
+    public boolean isJre() {
+        return jre;
+    }
+
+    public boolean isHotspot() {
+        return hotspot;
+    }
+
+    public boolean isOpenJ9() {
+        return openJ9;
+    }
+
+    public String getAsset() {
+        return asset;
+    }
+
+    public boolean isRefresh() {
+        return refresh;
+    }
+
+    public boolean isShowAssetInfo() {
+        return showAssetInfo;
+    }
+
+    public boolean isShowBoolean() {
+        return showBoolean;
+    }
+
+    public boolean isPrerelease() {
+        return prerelease;
+    }
+
+    public String getDownloadPath() {
+        return downloadPath;
+    }
+
+    public boolean isInstall() {
+        return install;
+    }
+
+    public boolean isDownload() {
+        return download;
+    }
+
+    public String getApiID() {
+        return apiID;
+    }
+
+    public String getApiSecret() {
+        return apiSecret;
     }
 
     /**
-     * Parses application arguments
-     *
-     * @param args application arguments
-     * @return {@code CommandLine} which represents a list of application
-     * arguments.
+     * Runs the application
+     * @return exit code
+     * @throws IOException if any IO error occurs
      */
-    private CommandLine parse(final String... args) {
-        final Options options = getOptions();
-        final CommandLineParser parser = new DefaultParser();
-
-        try {
-            return parser.parse(options, args);
-
-        } catch (final ParseException ex) {
-
-            logger.error("Failed to parse command line arguments");
-            logger.error(ex.toString());
-            printAppHelp();
-
-            System.exit(1);
-        }
-
-        return null;
-    }
-
-    /**
-     * Generates application command line options
-     *
-     * @return application {@code Options}
-     */
-    public Options getOptions() {
-        return new Options()
-                .addOption(ASSET_NAME.getOption())
-                .addOption(BOOLEAN.getOption())
-                .addOption(DEBUG.getOption())
-                .addOption(DOWNLOAD.getOption())
-                .addOption(BOOLEAN.getOption())
-                .addOption(HELP.getOption())
-                .addOption(HOTSPOT.getOption())
-                .addOption(INSTALL.getOption())
-                .addOption(JDK.getOption())
-                .addOption(JRE.getOption())
-                .addOption(OPENJ9.getOption())
-                .addOption(PRERELEASE.getOption())
-                .addOption(REFRESH.getOption())
-                .addOption(SHOW_ASSET_INFO.getOption())
-                .addOption(TRACE.getOption())
-                .addOption(VERSION.getOption());
-    }
-
-    public boolean exists(final Argument option) {
-        return line.hasOption(option.getOption().getLongOpt());
-    }
-
-    public String getValue(final Argument option) {
-        return line.getOptionValue(option.getOption().getLongOpt());
-    }
-
-    /**
-     * Prints application help
-     */
-    public void printAppHelp() {
-        final Options options = getOptions();
-
-        final HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("JUpdate", options, true);
-
-        //TODO: Decide on help text
-//        final String header = "Header Goes Here";
-//        final String footer = "Footer Goes Here";
-//
-//        formatter.printHelp("JUpdate", header, options, footer,true);
+    @Override
+    public Integer call() throws Exception {
+        return new JUpdateApp(this).call();
     }
 }

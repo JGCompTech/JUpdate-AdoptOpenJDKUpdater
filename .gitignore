@@ -20,6 +20,7 @@
 *.rar
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+app.properties
 hs_err_pid*
 /.idea/.gitignore
 /src/main/resources/app.properties

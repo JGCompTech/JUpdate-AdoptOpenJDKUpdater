@@ -145,29 +145,25 @@ public final class Version {
      * Returns the major version of the specified release.
      * @return Major version as int
      */
-    public int getMajor() {
-        return Integer.parseInt(getVersionInfo(Type.Major)); }
+    public int getMajor() { return Integer.parseInt(getVersionInfo(Type.Major)); }
 
     /**
      * Returns the minor version of the specified release.
      * @return Minor version as int
      */
-    public int getMinor() {
-        return Integer.parseInt(getVersionInfo(Type.Minor)); }
+    public int getMinor() { return Integer.parseInt(getVersionInfo(Type.Minor)); }
 
     /**
      * Returns the revision version of the specified release.
      * @return Build Revision as int
      */
-    public int getRevision() {
-        return Integer.parseInt(getVersionInfo(Type.Revision)); }
+    public int getRevision() { return Integer.parseInt(getVersionInfo(Type.Revision)); }
 
     /**
      * Returns the build major version of the specified release.
      * @return Build major version as int
      */
-    public int getBuildMajor() {
-        return Integer.parseInt(getVersionInfo(Type.BuildMajor)); }
+    public int getBuildMajor() { return Integer.parseInt(getVersionInfo(Type.BuildMajor)); }
 
     /**
      * Returns the build minor version of the specified release.
