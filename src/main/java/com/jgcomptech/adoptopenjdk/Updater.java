@@ -30,6 +30,9 @@ import static com.jgcomptech.adoptopenjdk.utils.Literals.FILE_SEPARATOR;
 import static com.jgcomptech.adoptopenjdk.utils.info.OSInfo.isWindows;
 import static com.jgcomptech.adoptopenjdk.utils.osutils.windows.Registry.HKEY.LOCAL_MACHINE;
 
+/**
+ * The main updater class that checks to see if a update is required.
+ */
 public class Updater {
     private final Logger logger = LoggerFactory.getLogger(Updater.class);
     private final Map<String, Version> installed = new HashMap<>();
@@ -37,8 +40,14 @@ public class Updater {
     private Version currentVersion = new Version("0.0.0+0.0");
     private boolean needsUpdate;
     private boolean isInstalled;
-    final SubRelease release;
+    private final SubRelease release;
 
+    /**
+     * Instantiates a new Updater.
+     * @param release the release
+     * @param asset   the asset
+     * @throws IOException if an error occurs
+     */
     public Updater(final SubRelease release, final SimpleAsset asset) throws IOException {
         this.release = release;
 
@@ -62,26 +71,50 @@ public class Updater {
         if(!isInstalled) needsUpdate = true;
     }
 
+    /**
+     * Gets the latest version.
+     * @return the latest version
+     */
     public Version getLatestVersion() {
         return latestVersion;
     }
 
+    /**
+     * Gets the currently installed version.
+     * @return the currently installed version
+     */
     public Version getCurrentVersion() {
         return currentVersion;
     }
 
+    /**
+     * Returns true if an update is required.
+     * @return true if an update is required
+     */
     public boolean needsUpdate() {
         return needsUpdate;
     }
 
+    /**
+     * Returns true if the specified base Java version is installed.
+     * @return true if the specified base Java version is installed
+     */
     public boolean isInstalled() {
         return isInstalled;
     }
 
+    /**
+     * Returns a list of all installed releases.
+     * @return a list of all installed releases
+     */
     public List<Version> getInstalledReleases() {
         return new ArrayList<>(installed.values());
     }
 
+    /**
+     * Returns a list of all installed releases from the Windows registry.
+     * @return a list of all installed releases from the Windows registry
+     */
     public List<Version> getVersionStringsFromRegistry() {
         String path = release.getReleaseType() == AssetReleaseType.JDK ? JDK_REGISTRY_PATH : JRE_REGISTRY_PATH;
 
@@ -108,6 +141,11 @@ public class Updater {
         return new ArrayList<>();
     }
 
+    /**
+     * Returns a list of all installed releases from the Windows ProgramFiles folder.
+     * @return a list of all installed releases from the Windows ProgramFiles folder
+     * @throws IOException if an error occurs
+     */
     public List<Version> getVersionStringsFromProgramFiles() throws IOException {
         final Path directory = Paths.get(WINDOWS_DEFAULT_INSTALL_PATH);
 
@@ -140,19 +178,23 @@ public class Updater {
         return versions;
     }
 
-    public boolean download(final String path, final String url) {
-        try {
-            return download(path, new URL(url));
-        } catch (final MalformedURLException e) {
-            logger.error(e.getMessage(), e);
-            return false;
-        }
-    }
-
+    /**
+     * Downloads the specified file to the specified path.
+     * @param path the path to download to
+     * @param url  the url to download
+     * @return the filename if no errors occurred
+     */
     @SuppressWarnings("BusyWait")
-    public boolean download(final String path, final URL url) {
+    public Optional<String> runDownload(final String path, final String url) {
+        String newPath = path;
+        boolean downloadSucceeded;
+
+        while (newPath.endsWith(FILE_SEPARATOR)) {
+            newPath = newPath.substring(0, path.length() - 1);
+        }
+
         try {
-            final Download download = new Download(path, url);
+            final Download download = new Download(path, new URL(url));
             while(download.getSize() == -1) Thread.sleep(10);
             logger.info("Downloading installer...");
             try (final ProgressBar pb = new ProgressBarBuilder()
@@ -171,35 +213,31 @@ public class Updater {
                     final File file = new File(download.getFilepath());
                     if(file.exists() && !file.isDirectory()) {
                         logger.info("Download Complete!");
-                        return true;
+                        downloadSucceeded = true;
                     } else {
                         logger.error("Installer Failed To Download!");
-                        return false;
+                        downloadSucceeded = false;
                     }
+                    break;
                 case CANCELLED:
                     logger.info("Download Canceled!");
-                    return false;
+                    downloadSucceeded = false;
+                    break;
                 case ERROR:
                     logger.info("Download Failed!");
-                    return false;
+                    downloadSucceeded = false;
+                    break;
                 default:
-                    return false;
+                    downloadSucceeded = false;
+                    break;
             }
 
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException | MalformedURLException e) {
             logger.error(e.getMessage(), e);
-            return false;
-        }
-    }
-
-    public Optional<String> runDownload(final String path, final String url) {
-        String newPath = path;
-
-        while (newPath.endsWith(FILE_SEPARATOR)) {
-            newPath = newPath.substring(0, path.length() - 1);
+            downloadSucceeded = false;
         }
 
-        if(download(path, url)) {
+        if(downloadSucceeded) {
             String filename;
 
             if(path.isEmpty()) {
@@ -212,6 +250,11 @@ public class Updater {
         } else return Optional.empty();
     }
 
+    /**
+     * Runs the installer.
+     * @param filename the filename
+     * @throws FileNotFoundException if an error occurs
+     */
     public void runInstall(final String filename) throws FileNotFoundException {
         final File localFile = new File(filename);
         if(localFile.exists() && !localFile.isDirectory()) {

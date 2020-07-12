@@ -12,6 +12,29 @@ public final class Version {
     final String buildMajor;
     final String buildMinor;
 
+    public static boolean isNewerThen(final Version first, final Version second) {
+        if(first.getMajor() > second.getMajor()) return true;
+        else if(first.getMajor() == second.getMajor()
+                && first.getMinor() > second.getMinor()) return true;
+        else if(first.getMajor() == second.getMajor()
+                && first.getMinor() == second.getMinor()
+                && first.getRevision() > second.getRevision()) return true;
+        else return first.getMajor() == second.getMajor()
+                    && first.getMinor() == second.getMinor()
+                    && first.getRevision() == second.getRevision()
+                    && first.getBuildMajor() > second.getBuildMajor();
+        //TODO: Fix issue with BuildMinor not showing in filename or registry
+//        else if(first.getMajor() == second.getMajor()
+//                && first.getMinor() == second.getMinor()
+//                && first.getRevision() == second.getRevision()
+//                && first.getBuildMajor() > second.getBuildMajor()) return true;
+//        else return first.getMajor() == second.getMajor()
+//                    && first.getMinor() == second.getMinor()
+//                    && first.getRevision() == second.getRevision()
+//                    && first.getBuildMajor() == second.getBuildMajor()
+//                    && first.getBuildMinor() > second.getBuildMinor();
+    }
+
     public Version(final String version) {
         this(version, false);
     }
@@ -196,33 +219,11 @@ public final class Version {
                 && getMinor() == second.getMinor()
                 && getRevision() == second.getRevision()
                 && getBuildMajor() == second.getBuildMajor();
+                //&& getBuildMinor() == second.getBuildMinor();
     }
 
     public boolean isNewerThen(final Version second) {
         return isNewerThen(this, second);
-    }
-
-    public static boolean isNewerThen(final Version first, final Version second) {
-        if(first.getMajor() > second.getMajor()) return true;
-        else if(first.getMajor() == second.getMajor()
-                && first.getMinor() > second.getMinor()) return true;
-        else if(first.getMajor() == second.getMajor()
-                && first.getMinor() == second.getMinor()
-                && first.getRevision() > second.getRevision()) return true;
-        else return first.getMajor() == second.getMajor()
-                && first.getMinor() == second.getMinor()
-                && first.getRevision() == second.getRevision()
-                && first.getBuildMajor() > second.getBuildMajor();
-        //TODO: Fix issue with BuildMinor not showing in filename or registry
-//        else if(first.getMajor() == second.getMajor()
-//                && first.getMinor() == second.getMinor()
-//                && first.getRevision() == second.getRevision()
-//                && first.getBuildMajor() > second.getBuildMajor()) return true;
-//        else return first.getMajor() == second.getMajor()
-//                    && first.getMinor() == second.getMinor()
-//                    && first.getRevision() == second.getRevision()
-//                    && first.getBuildMajor() == second.getBuildMajor()
-//                    && first.getBuildMinor() > second.getBuildMinor();
     }
 
     public enum Type {

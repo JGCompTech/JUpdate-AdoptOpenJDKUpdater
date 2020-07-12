@@ -36,7 +36,7 @@ public class JUpdateApp implements Callable<Integer> {
         logger.info("Selected Java " + arguments.getVersion() + ", Please wait...");
 
         JavaRelease release = new JavaRelease(arguments.getVersion());
-        JavaRelease.releases.put("java" + arguments.getVersion(), release);
+        JavaRelease.getReleases().put("java" + arguments.getVersion(), release);
         return Optional.of(release);
     }
 
@@ -117,6 +117,7 @@ public class JUpdateApp implements Callable<Integer> {
 
         logger.info("Processing Update Info...");
 
+        //Load API properties file and if the file doesn't exist then load OAuth from the command line
         APISettings.loadPropertiesFile();
         if(!APISettings.isUseOAuth() && !isBlank(arguments.getApiID()) && !isBlank(arguments.getApiSecret())) {
             APISettings.setOAuth_client_id(arguments.getApiID());
@@ -127,6 +128,7 @@ public class JUpdateApp implements Callable<Integer> {
         if(APISettings.isUseOAuth()) logger.info("GitHub OAuth Active...");
         else logger.info("GitHub OAuth Inactive...");
 
+        //Load the Java release to use for lookup using the specified Java version
         final Optional<JavaRelease> release = getRelease();
 
         if (release.isPresent()) {
@@ -144,18 +146,23 @@ public class JUpdateApp implements Callable<Integer> {
 
             final SubRelease subRelease = getSubRelease(assetType.get(), release.get());
 
+            //If the exclusions refresh is enabled create a new file otherwise just create it if it doesn't exist
             Exclusions.createNewFile(arguments.isRefresh());
             Exclusions.loadFile();
 
+            //This is the main processing task that contacts the API and download all release info
             subRelease.processReleases(arguments.isPrerelease(),
                     arguments.isShowBoolean()).printMissingAssets().printExtraAssets();
 
+            //Retrieve the specified asset name to use for update check and installer download
             final AssetName assetName = processAssetName().orElseGet(this::getLocalizedAssetName);
 
+            //Retrieve the matching asset object
             final Optional<SimpleAsset> asset = subRelease.getAssets().get(assetName);
 
             if (!asset.isPresent()) throw new IllegalArgumentException("Asset Not Found!");
 
+            //If it was specified to show info about the retrieved asset do that here
             if (arguments.isShowAssetInfo()) {
                 final SimpleAsset a = asset.get();
 
@@ -171,8 +178,7 @@ public class JUpdateApp implements Callable<Integer> {
                 logger.info("Download Link: " + a.getBrowserDownloadURL());
             }
 
-            final String downloadUrl = asset.get().getBrowserDownloadURL();
-
+            //Initialize the updater instance and run an update check
             final Updater updater = new Updater(subRelease, asset.get());
 
             if (updater.needsUpdate()) {
@@ -184,11 +190,14 @@ public class JUpdateApp implements Callable<Integer> {
                 if (arguments.isShowBoolean()) System.out.println("true");
                 if (arguments.isDownload() || arguments.isInstall()) {
 
-                    String path = arguments.getDownloadPath();
+                    final String downloadUrl = asset.get().getBrowserDownloadURL();
+                    final String path = arguments.getDownloadPath();
 
+                    //Download the installer
                     Optional<String> filename = updater.runDownload(path, downloadUrl);
                     if (arguments.isInstall()) {
                         if (filename.isPresent()) {
+                            //Run the installer
                             updater.runInstall(filename.get());
                         }
                     }

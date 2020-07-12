@@ -24,9 +24,17 @@ import static com.jgcomptech.adoptopenjdk.utils.HJsonUtils.convertObjectToHJson;
 import static com.jgcomptech.adoptopenjdk.utils.HJsonUtils.writeHJsonToFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/**
+ * The main processing class for generating API asset exclusions.
+ */
 public class Exclusions {
     private static ExclusionsBase exclusions;
 
+    /**
+     * Create new empty file.
+     * @param overwrite if true overwrites any existing file
+     * @throws IOException if an error occurs
+     */
     public static void createNewEmptyFile(final boolean overwrite) throws IOException {
         final Path exclusionsFile = Paths.get("exclusions.hjson");
 
@@ -41,6 +49,11 @@ public class Exclusions {
         }
     }
 
+    /**
+     * Create new file.
+     * @param overwrite if true overwrites any existing file
+     * @throws IOException if an error occurs
+     */
     public static void createNewFile(final boolean overwrite) throws IOException {
         final Path exclusionsFile = Paths.get("exclusions.hjson");
 
@@ -111,29 +124,8 @@ public class Exclusions {
         } else throw new IllegalArgumentException();
     }
 
-    public static void loadFile() throws IOException {
-        loadFile("exclusions.hjson");
-    }
-
-    public static void loadFile(final String filePath) throws IOException {
-        final File exclusionsFile = new File(filePath);
-
-        if (exclusionsFile.exists()) {
-            try(final FileInputStream fis = new FileInputStream(exclusionsFile);
-                final InputStreamReader in = new InputStreamReader(
-                        fis, StandardCharsets.UTF_8)) {
-                String hjson = JsonValue.readHjson(in).toString();
-                exclusions = new ObjectMapper().readValue(hjson, ExclusionsBase.class);
-
-                for(final Map.Entry<String, ExclusionsBaseRelease> release : exclusions.releases.entrySet()) {
-                    enableRelease(release.getKey());
-                }
-            }
-        }
-    }
-
     private static void enableRelease(final String releaseName) {
-        final JavaRelease release = JavaRelease.releases.get(releaseName);
+        final JavaRelease release = JavaRelease.getReleases().get(releaseName);
 
         if(release != null) {
             final BaseAssets javajdkHotspotAssets = release.getJdkHotspot().getAssets().enableAllAssets();
@@ -181,6 +173,36 @@ public class Exclusions {
 
             if(isXLDisabled(release, AssetType.JREOpenJ9)) {
                 javajreOpenJ9Assets.disableXL();
+            }
+        }
+    }
+
+    /**
+     * Load the exclusions file.
+     * @throws IOException if an error occurs
+     */
+    public static void loadFile() throws IOException {
+        loadFile("exclusions.hjson");
+    }
+
+    /**
+     * Load the exclusions file.
+     * @param filePath the file path
+     * @throws IOException if an error occurs
+     */
+    public static void loadFile(final String filePath) throws IOException {
+        final File exclusionsFile = new File(filePath);
+
+        if (exclusionsFile.exists()) {
+            try(final FileInputStream fis = new FileInputStream(exclusionsFile);
+                final InputStreamReader in = new InputStreamReader(
+                        fis, StandardCharsets.UTF_8)) {
+                String hjson = JsonValue.readHjson(in).toString();
+                exclusions = new ObjectMapper().readValue(hjson, ExclusionsBase.class);
+
+                for(final Map.Entry<String, ExclusionsBaseRelease> release : exclusions.releases.entrySet()) {
+                    enableRelease(release.getKey());
+                }
             }
         }
     }

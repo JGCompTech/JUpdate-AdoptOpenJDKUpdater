@@ -12,6 +12,9 @@ import static com.jgcomptech.adoptopenjdk.Settings.CURRENT_LTS;
 import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Option;
 
+/**
+ * Initializes and holds all provided command line arguments to be passed to the rest of the application.
+ */
 @Command(name = "jupdate", version = APP_VERSION,
         description = "A basic Java updater for AdoptOpenJDK.",
         optionListHeading = "%nOptions:%n")
@@ -19,10 +22,18 @@ public class Arguments implements Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(Arguments.class);
     private CommandLine cmd;
 
+    /**
+     * Returns the CommandLine object instance.
+     * @return the CommandLine object instance
+     */
     public CommandLine getCmd() {
         return cmd;
     }
 
+    /**
+     * Sets the CommandLine object instance.
+     * @param cmd the CommandLine object instance
+     */
     public void setCmd(CommandLine cmd) {
         this.cmd = cmd;
     }
@@ -108,78 +119,159 @@ public class Arguments implements Callable<Integer> {
             "(is ignored if both id and secret are not specified)")
     private String apiSecret = "";
 
+    /**
+     * Returns true if the -version argument was passed.
+     * @return true if -version was passed
+     */
     public boolean isVersionInfoRequested() {
         return versionInfoRequested;
     }
 
+    /**
+     * Returns true if the -? or --help argument was passed.
+     * @return true if the -? or --help argument was passed
+     */
     public boolean isUsageHelpRequested() {
         return usageHelpRequested;
     }
 
+    /**
+     * Returns the specified java version.
+     * @return the version
+     */
     public int getVersion() {
         return version;
     }
 
+    /**
+     * Returns true if debug logging should be enabled.
+     * @return true if debug logging should be enabled
+     */
     public boolean isDebug() {
         return debug;
     }
 
+    /**
+     * Returns true if trace logging should be enabled.
+     * @return true if trace logging should be enabled
+     */
     public boolean isTrace() {
         return trace;
     }
 
+    /**
+     * Returns true if the JDK release should be used.
+     * @return true if the JDK release should be used
+     */
     public boolean isJdk() {
         return jdk;
     }
 
+    /**
+     * Returns true if the JRE release should be used.
+     * @return true if the JRE release should be used
+     */
     public boolean isJre() {
         return jre;
     }
 
+    /**
+     * Returns true if the Hotspot release should be used.
+     * @return true if the Hotspot release should be used
+     */
     public boolean isHotspot() {
         return hotspot;
     }
 
+    /**
+     * Returns true if the OpenJ9 release should be used.
+     * @return true if the OpenJ9 release should be used
+     */
     public boolean isOpenJ9() {
         return openJ9;
     }
 
+    /**
+     * Returns the specified asset name.
+     * @return the specified asset name
+     */
     public String getAsset() {
         return asset;
     }
 
+    /**
+     * Returns true if a refresh of the exclusions file is needed.
+     * @return true if a refresh of the exclusions file is needed
+     */
     public boolean isRefresh() {
         return refresh;
     }
 
+    /**
+     * Returns true if asset info should be shown after lookup.
+     *
+     * @return true if asset info should be shown after lookup
+     */
     public boolean isShowAssetInfo() {
         return showAssetInfo;
     }
 
+    /**
+     * Return true if logging should be disabled and a boolean result returned,
+     *
+     * @return true if logging should be disabled and a boolean result returned,
+     */
     public boolean isShowBoolean() {
         return showBoolean;
     }
 
+    /**
+     * Returns true if pre-release assets should be used.
+     *
+     * @return true if pre-release assets should be used
+     */
     public boolean isPrerelease() {
         return prerelease;
     }
 
+    /**
+     * Returns the specified download path for the installer.
+     * @return the specified download path for the installer
+     */
     public String getDownloadPath() {
         return downloadPath;
     }
 
+    /**
+     * Returns true if the release should be downloaded and installed.
+     * @return true if the release should be downloaded and installed
+     */
     public boolean isInstall() {
         return install;
     }
 
+    /**
+     * Returns true if the release should be downloaded.
+     *
+     * @return true if the release should be downloaded
+     */
     public boolean isDownload() {
         return download;
     }
 
+    /**
+     * Returns the specified GitHub API ID.
+     * @return the specified GitHub API ID
+     */
     public String getApiID() {
         return apiID;
     }
 
+    /**
+     * Returns the specified GitHub API Secret.
+     *
+     * @return the specified GitHub API Secret
+     */
     public String getApiSecret() {
         return apiSecret;
     }
@@ -190,7 +282,7 @@ public class Arguments implements Callable<Integer> {
      * @throws IOException if any IO error occurs
      */
     @Override
-    public Integer call() throws Exception {
+    public Integer call() throws IOException {
         return new JUpdateApp(this).call();
     }
 }

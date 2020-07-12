@@ -3,6 +3,7 @@ package com.jgcomptech.adoptopenjdk.api.beans;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jgcomptech.adoptopenjdk.enums.AssetFileType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,6 +22,9 @@ public final class SimpleRelease {
     private final String created_at;
     private final String published_at;
     private final List<SimpleAsset> assets = new ArrayList<>();
+    private final List<SimpleAsset> shaAssets = new ArrayList<>();
+    private final List<SimpleAsset> jsonAssets = new ArrayList<>();
+    private final List<SimpleAsset> binaryAssets = new ArrayList<>();
     private final String description;
 
     public SimpleRelease(final JsonObject rootObj) {
@@ -56,6 +60,35 @@ public final class SimpleRelease {
                     .setUpdatedAt(currentObj.get("updated_at").getAsString())
                     .setBrowserDownloadURL(currentObj.get("browser_download_url").getAsString())
                     .build());
+        }
+
+        //Process each asset one at a time
+        for (final SimpleAsset asset : getAssets()) {
+            //Check if file matches java version
+            if (//Block the weird duplicate file OpenJDK11U-jdk_ppc64_aix_hotspot_11.0.4_11_adopt.tar.gz
+                    !asset.getFilename().contains("adopt.tar.gz")){
+
+                //Get the file type of the current asset
+                final AssetFileType fileType = asset.getFileType();
+
+                //Sort the assets by file type
+                if (fileType == AssetFileType.pkg
+                        || fileType == AssetFileType.tar_gz
+                        || fileType == AssetFileType.msi
+                        || fileType == AssetFileType.zip) {
+                    binaryAssets.add(asset);
+                } else if (fileType == AssetFileType.pkg_json
+                        || fileType == AssetFileType.tar_gz_json
+                        || fileType == AssetFileType.msi_json
+                        || fileType == AssetFileType.zip_json) {
+                    jsonAssets.add(asset);
+                } else if (fileType == AssetFileType.pkg_sha256_txt
+                        || fileType == AssetFileType.tar_gz_sha256_txt
+                        || fileType == AssetFileType.msi_sha256_txt
+                        || fileType == AssetFileType.zip_sha256_txt) {
+                    shaAssets.add(asset);
+                }
+            }
         }
     }
 
@@ -106,6 +139,24 @@ public final class SimpleRelease {
     public List<SimpleAsset> getAssets() {
         return Collections.unmodifiableList(assets);
     }
+
+    public List<SimpleAsset> getShaAssets() {
+        return Collections.unmodifiableList(shaAssets);
+    }
+
+    public List<SimpleAsset> getJsonAssets() {
+        return Collections.unmodifiableList(jsonAssets);
+    }
+
+    public List<SimpleAsset> getBinaryAssets() {
+        return Collections.unmodifiableList(binaryAssets);
+    }
+
+    public void addShaAsset(final SimpleAsset asset) { shaAssets.add(asset); }
+
+    public void addJsonAsset(final SimpleAsset asset) { jsonAssets.add(asset); }
+
+    public void addBinaryAsset(final SimpleAsset asset) { binaryAssets.add(asset); }
 
     public String getDescription() {
         return description;

@@ -3,13 +3,15 @@ package com.jgcomptech.adoptopenjdk;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jgcomptech.adoptopenjdk.api.APISettings;
 import com.jgcomptech.adoptopenjdk.api.BaseAssets;
 import com.jgcomptech.adoptopenjdk.api.beans.SimpleAsset;
-import com.jgcomptech.adoptopenjdk.api.beans.SmartRelease;
+import com.jgcomptech.adoptopenjdk.api.beans.SimpleRelease;
 import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
 import com.jgcomptech.adoptopenjdk.enums.AssetName;
 import com.jgcomptech.adoptopenjdk.enums.AssetReleaseType;
 import com.jgcomptech.adoptopenjdk.enums.AssetType;
+import com.jgcomptech.adoptopenjdk.utils.IntegerValue;
 import com.jgcomptech.adoptopenjdk.utils.Utils;
 import com.jgcomptech.adoptopenjdk.utils.logging.Loggers;
 import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBar;
@@ -27,42 +29,107 @@ import java.util.Optional;
 import static com.jgcomptech.adoptopenjdk.Settings.COMPANY_NAME;
 import static com.jgcomptech.adoptopenjdk.api.APISettings.*;
 
+/**
+ * The main object that contains all info about a specific Java version in either JDK or JRE and Hotspot or OpenJ9.
+ */
 public class SubRelease {
     private final Logger logger = LoggerFactory.getLogger(SubRelease.class);
     private final AssetType assetType;
     private final JavaRelease parent;
     private final BaseAssets assets;
+    private final IntegerValue pageCount = new IntegerValue(1);
+    private final IntegerValue releaseCount = new IntegerValue(APISettings.getNumberOfReleasesPerPage());
 
+    /**
+     * Instantiates a new Sub release.
+     * @param assetType the asset type
+     * @param parent    the parent
+     */
     public SubRelease(final AssetType assetType, final JavaRelease parent) {
         this.assetType = assetType;
         this.parent = parent;
         assets = new BaseAssets(this);
     }
 
+    /**
+     * Gets the Java version name.
+     * @return the Java version name
+     */
     public String getName() {
         return parent.toString() + ' ' + assetType.toString();
     }
 
+    /**
+     * Gets the type including JDK or JRE and Hotspot or OpenJ9.
+     * @return the type including JDK or JRE and Hotspot or OpenJ9
+     */
     public AssetType getType() {
         return assetType;
     }
 
+    /**
+     * Gets the release type either JDK or JRE.
+     * @return the release type either JDK or JRE
+     */
     public AssetReleaseType getReleaseType() {
         return assetType.getReleaseType();
     }
 
+    /**
+     * Gets the JVM type either Hotspot or OpenJ9.
+     * @return the JVM type either Hotspot or OpenJ9
+     */
     public AssetJVMType getJvmType() {
         return assetType.getJvmType();
     }
 
+    /**
+     * Gets the parent Java base release.
+     * @return the parent Java base release
+     */
     public JavaRelease getParentBaseRelease() {
         return parent;
     }
 
+    /**
+     * Gets the object containing all the acquired release objects.
+     * @return the object containing all the acquired release objects
+     */
     public BaseAssets getAssets() {
         return assets;
     }
 
+    /**
+     * Gets the current API page count.
+     * @return the current API page count
+     */
+    private int getPageCount() {
+        return pageCount.get();
+    }
+
+    /**
+     * Gets the current API release count.
+     * @return the current API release count
+     */
+    private int getReleaseCount() {
+        return releaseCount.get();
+    }
+
+    /**
+     * Increments the current API page and release count.
+     */
+    private void incrementPageAndReleaseCount() {
+        pageCount.increment();
+        releaseCount.add(APISettings.getNumberOfReleasesPerPage());
+    }
+
+    /**
+     * Contacts the API and download all release info and process the results.
+     * @param prerelease  whether or not pre-release assets should be used
+     * @param showBoolean whether or not logging should be enabled
+     * @return this instance for method chaining
+     * @throws IOException if any errors occur
+     */
     @SuppressWarnings("UnusedReturnValue")
     public SubRelease processReleases(final boolean prerelease, final boolean showBoolean) throws IOException {
         logger.info("~ Processing Java " + parent.getMajorBuild() + ' ' + assetType.toString() + "...");
@@ -116,17 +183,17 @@ public class SubRelease {
         //noinspection IfMayBeConditional
         if (isUseOAuth()) {
             fullUrl = String.format(fullUrlMask, COMPANY_NAME, releaseUrl,
-                    baseRelease.getPageCount(), getNumberOfReleasesPerPage(),
+                    getPageCount(), getNumberOfReleasesPerPage(),
                     getOAuth_client_id(), getOAuth_client_secret());
         }
         else {
             fullUrl = String.format(shortUrlMask, COMPANY_NAME, releaseUrl,
-                    baseRelease.getPageCount(), getNumberOfReleasesPerPage());
+                    getPageCount(), getNumberOfReleasesPerPage());
         }
 
-        logger.debug("~ Processing Release Page " + baseRelease.getPageCount() + ' ' + subRelease.getName()
-                + " (Release " + (baseRelease.getReleaseCount() - getNumberOfReleasesPerPage())
-                + '-' + baseRelease.getReleaseCount() + ")...");
+        logger.debug("~ Processing Release Page " + getPageCount() + ' ' + subRelease.getName()
+                + " (Release " + (getReleaseCount() - getNumberOfReleasesPerPage())
+                + '-' + getReleaseCount() + ")...");
 
         //Load the JSON response from the API
         final JsonArray pageReleases = Utils.processJSONAsArray(fullUrl);
@@ -134,13 +201,11 @@ public class SubRelease {
         //Go to the next release if 0 results were returned
         if(pageReleases.size() == 0) {
             //Increment the API page count to prep for the next release page
-            baseRelease.incrementPageAndReleaseCount();
+            incrementPageAndReleaseCount();
             return true;
         }
 
-        //BaseAssets currentAssets = subRelease.getAssets();
-
-        final List<SmartRelease> newReleases = new LinkedList<>();
+        final List<SimpleRelease> newReleases = new LinkedList<>();
 
         //Process each release one at a time
         for(final JsonElement releaseElement : pageReleases) {
@@ -149,7 +214,7 @@ public class SubRelease {
             //If release is marked as a pre-release then skip
             if(releaseObject.get("prerelease").getAsBoolean() && !usePrerelease) continue;
 
-            newReleases.add(new SmartRelease(releaseObject));
+            newReleases.add(new SimpleRelease(releaseObject));
         }
 
         if(subRelease.isAllAssetsAcquired()) {
@@ -161,7 +226,7 @@ public class SubRelease {
             return true;
         }
 
-        for(final SmartRelease newRelease : newReleases) {
+        for(final SimpleRelease newRelease : newReleases) {
             processRelease(subRelease, newRelease, pb);
 
             if(subRelease.isAllAssetsAcquired()) {
@@ -175,12 +240,12 @@ public class SubRelease {
         }
 
         //Increment the API page count to prep for the next release page
-        baseRelease.incrementPageAndReleaseCount();
+        incrementPageAndReleaseCount();
         return false;
     }
 
     private void processRelease(final SubRelease subRelease,
-                                       final SmartRelease release,
+                                       final SimpleRelease release,
                                        final ProgressBar pb) {
         BaseAssets currentAssets = subRelease.getAssets();
         String releaseName = subRelease.getName();
@@ -281,22 +346,38 @@ public class SubRelease {
         }
     }
 
+    /**
+     * Returns true if all assets have been acquired from the API.
+     * @return true if all assets have been acquired from the API
+     */
     public boolean isAllAssetsAcquired() {
         return assets.isAllAcquired();
     }
 
+    /**
+     * Returns a list of all assets returned by the API that were unexpected.
+     * @return a list of all assets returned by the API that were unexpected
+     */
     public List<AssetName> getExtraAssets() {
         return assets.getAll().keySet().stream()
                 .filter(asset -> !assets.getEnabledAssets().contains(asset))
                 .collect(CollectorsExt.toUnmodifiableList());
     }
 
+    /**
+     * Returns a list of all assets not returned by the API that were expected.
+     * @return a list of all assets not returned by the API that were expected
+     */
     public List<AssetName> getMissingAssets() {
         return assets.getEnabledAssets().stream()
                 .filter(asset -> !assets.contains(asset))
                 .collect(CollectorsExt.toUnmodifiableList());
     }
 
+    /**
+     * Prints all assets returned by the API that were unexpected.
+     * @return this instance for method chaining
+     */
     @SuppressWarnings("UnusedReturnValue")
     public SubRelease printMissingAssets() {
         getMissingAssets()
@@ -304,6 +385,10 @@ public class SubRelease {
         return this;
     }
 
+    /**
+     * Prints all assets not returned by the API that were expected.
+     * @return this instance for method chaining
+     */
     @SuppressWarnings("UnusedReturnValue")
     public SubRelease printExtraAssets() {
         getExtraAssets()
