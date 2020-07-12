@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.RoundingMode;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.text.DecimalFormat;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -79,11 +79,43 @@ public final class Utils {
     }
 
     public static JsonArray processJSONAsArray(final URL url) throws IOException {
-        final URLConnection request = url.openConnection();
-        request.connect();
+        final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.connect();
 
-        try(final InputStreamReader isr = new InputStreamReader((InputStream) request.getContent())) {
+        int code = connection.getResponseCode();
+
+        if(code == 200) {
+            return getHTTPResponse(connection.getInputStream());
+        } else if(code == 401){
+            throw new IllegalStateException("GitHub API Bad Credentials!");
+        } else if(code == 403){
+            throw new IllegalStateException("GitHub API Rate Limit Reached!");
+        } else if(code == 404) {
+            String message = getHTTPErrorMessage(connection.getErrorStream());
+
+            if(message.contains("Not Found")) {
+                throw new IllegalStateException("GitHub Page Not Found!");
+            } else {
+                throw new IllegalStateException("GitHub API: " + message);
+            }
+        } else {
+            String message = getHTTPErrorMessage(connection.getErrorStream());
+
+            throw new IllegalStateException("Unknown API Error! Error Message: " + message);
+        }
+    }
+
+    private static JsonArray getHTTPResponse(InputStream content) throws IOException {
+        try (final InputStreamReader isr = new InputStreamReader(content)) {
             return JsonParser.parseReader(isr).getAsJsonArray();
+        }
+    }
+
+    private static String getHTTPErrorMessage(InputStream content) throws IOException {
+        try (final InputStreamReader isr = new InputStreamReader(content)) {
+            return JsonParser.parseReader(isr).getAsJsonObject()
+                    .get("message").getAsString().replace("\"", "");
         }
     }
 
