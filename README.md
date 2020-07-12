@@ -1,4 +1,4 @@
-# JUpdate-AdoptOpenJDKUpdater
+# JUpdate-AdoptOpenJDKUpdater [![CodeFactor](https://www.codefactor.io/repository/github/jgcomptech/jupdate-adoptopenjdkupdater/badge/master)](https://www.codefactor.io/repository/github/jgcomptech/jupdate-adoptopenjdkupdater/overview/master)
 A command-line updater for Java for the AdoptOpenJDK.
 
 This updater will check the AdoptOpenJDK repository releases for the newest versions and return info based on the specified parameters.
