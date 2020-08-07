@@ -5,7 +5,7 @@ import com.jgcomptech.adoptopenjdk.api.beans.SimpleAsset;
 import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
 import com.jgcomptech.adoptopenjdk.enums.AssetReleaseType;
 import com.jgcomptech.adoptopenjdk.enums.DLStatus;
-import com.jgcomptech.adoptopenjdk.utils.Download;
+import com.jgcomptech.adoptopenjdk.utils.HTTPDownload;
 import com.jgcomptech.adoptopenjdk.utils.osutils.ExecutingCommand;
 import com.jgcomptech.adoptopenjdk.utils.osutils.windows.Registry;
 import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBar;
@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -193,8 +192,7 @@ public class Updater {
             newPath = newPath.substring(0, path.length() - 1);
         }
 
-        try {
-            final Download download = new Download(path, new URL(url));
+        try(final HTTPDownload download = new HTTPDownload(path, url).download()) {
             while(download.getSize() == -1) Thread.sleep(10);
             logger.info("Downloading installer...");
             try (final ProgressBar pb = new ProgressBarBuilder()

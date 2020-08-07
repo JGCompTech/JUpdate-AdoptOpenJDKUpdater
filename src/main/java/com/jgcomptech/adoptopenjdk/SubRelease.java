@@ -11,8 +11,8 @@ import com.jgcomptech.adoptopenjdk.enums.AssetJVMType;
 import com.jgcomptech.adoptopenjdk.enums.AssetName;
 import com.jgcomptech.adoptopenjdk.enums.AssetReleaseType;
 import com.jgcomptech.adoptopenjdk.enums.AssetType;
+import com.jgcomptech.adoptopenjdk.utils.HTTPDownload;
 import com.jgcomptech.adoptopenjdk.utils.IntegerValue;
-import com.jgcomptech.adoptopenjdk.utils.Utils;
 import com.jgcomptech.adoptopenjdk.utils.logging.Loggers;
 import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBar;
 import com.jgcomptech.adoptopenjdk.utils.progressbar.ProgressBarBuilder;
@@ -195,11 +195,13 @@ public class SubRelease {
                 + " (Release " + (getReleaseCount() - getNumberOfReleasesPerPage())
                 + '-' + getReleaseCount() + ")...");
 
+        final HTTPDownload download = new HTTPDownload(fullUrl);
+
         //Load the JSON response from the API
-        final JsonArray pageReleases = Utils.processJSONAsArray(fullUrl);
+        final Optional<JsonArray> pageReleases = download.processJSONAsArray();
 
         //Go to the next release if 0 results were returned
-        if(pageReleases.size() == 0) {
+        if(!pageReleases.isPresent() || pageReleases.get().size() == 0) {
             //Increment the API page count to prep for the next release page
             incrementPageAndReleaseCount();
             return true;
@@ -208,7 +210,7 @@ public class SubRelease {
         final List<SimpleRelease> newReleases = new LinkedList<>();
 
         //Process each release one at a time
-        for(final JsonElement releaseElement : pageReleases) {
+        for(final JsonElement releaseElement : pageReleases.get()) {
             final JsonObject releaseObject = releaseElement.getAsJsonObject();
 
             //If release is marked as a pre-release then skip

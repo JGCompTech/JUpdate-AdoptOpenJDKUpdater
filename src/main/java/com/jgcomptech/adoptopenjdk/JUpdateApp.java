@@ -13,10 +13,12 @@ import com.jgcomptech.adoptopenjdk.utils.logging.Loggers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
+import static com.jgcomptech.adoptopenjdk.utils.Literals.FILE_SEPARATOR;
 import static com.jgcomptech.adoptopenjdk.utils.StringUtils.isBlank;
 
 public class JUpdateApp implements Callable<Integer> {
@@ -193,12 +195,25 @@ public class JUpdateApp implements Callable<Integer> {
                     final String downloadUrl = asset.get().getBrowserDownloadURL();
                     final String path = arguments.getDownloadPath();
 
-                    //Download the installer
-                    Optional<String> filename = updater.runDownload(path, downloadUrl);
+                    String filename;
+                    File file;
+
+                    if(path.isEmpty()) {
+                        filename = new File(downloadUrl).getName().trim();
+                    } else {
+                        filename = path + FILE_SEPARATOR + new File(downloadUrl).getName().trim();
+                    }
+
+                    file = new File(filename);
+
+                    if (!file.exists()) {
+                        //Download the installer
+                        updater.runDownload(path, downloadUrl);
+                    }
                     if (arguments.isInstall()) {
-                        if (filename.isPresent()) {
+                        if (file.exists()) {
                             //Run the installer
-                            updater.runInstall(filename.get());
+                            updater.runInstall(filename);
                         }
                     }
                 }

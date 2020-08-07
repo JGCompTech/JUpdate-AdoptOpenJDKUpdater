@@ -1,19 +1,13 @@
 package com.jgcomptech.adoptopenjdk.utils;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonParser;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.math.RoundingMode;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.DecimalFormat;
+import java.util.Locale;
 
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static com.jgcomptech.adoptopenjdk.utils.Literals.LOCALE_CANNOT_BE_NULL;
+import static org.apache.commons.lang3.StringUtils.*;
 
 public final class Utils {
     private Utils() { }
@@ -61,7 +55,7 @@ public final class Utils {
     /**
      * Ensures that {@code reference} is non-null and non-empty,
      * throwing an {@code IllegalArgumentException} with a custom message otherwise.
-     * @apiNote This method calls {@link StringUtils#isNotBlank(CharSequence)} on the specified reference.
+     * @apiNote This method calls {@link org.apache.commons.lang3.StringUtils#isNotBlank(CharSequence)} on the specified reference.
      * @param reference the object to verify
      * @param errorMessage the exception message to use if the check fails; will be converted to a
      *          string using {@link String#valueOf(Object)}
@@ -74,49 +68,87 @@ public final class Utils {
         return reference;
     }
 
-    public static JsonArray processJSONAsArray(final String url) throws IOException {
-        return processJSONAsArray(new URL(url));
+    /**
+     * Checks if a string can be converted to a Boolean.
+     * @param input string to check
+     * @return true if string matches a boolean, false if does not match or is null
+     */
+    public static boolean isBoolean(final String input) {
+        return isBoolean(input, Locale.getDefault(Locale.Category.FORMAT));
     }
 
-    public static JsonArray processJSONAsArray(final URL url) throws IOException {
-        final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.connect();
-
-        int code = connection.getResponseCode();
-
-        if(code == 200) {
-            return getHTTPResponse(connection.getInputStream());
-        } else if(code == 401){
-            throw new IllegalStateException("GitHub API Bad Credentials!");
-        } else if(code == 403){
-            throw new IllegalStateException("GitHub API Rate Limit Reached!");
-        } else if(code == 404) {
-            String message = getHTTPErrorMessage(connection.getErrorStream());
-
-            if(message.contains("Not Found")) {
-                throw new IllegalStateException("GitHub Page Not Found!");
-            } else {
-                throw new IllegalStateException("GitHub API: " + message);
-            }
-        } else {
-            String message = getHTTPErrorMessage(connection.getErrorStream());
-
-            throw new IllegalStateException("Unknown API Error! Error Message: " + message);
+    /**
+     * Checks if a string can be converted to a Boolean.
+     * @apiNote The following strings are considered true boolean values:
+     *          "true", "t", "yes", "y", "1", "succeeded", "succeed", "enabled".
+     *          The following strings are considered false boolean values:
+     *          "false", "f", "no", "n", "0", "-1", "failed", "fail", "disabled".
+     * @param input string to check
+     * @param locale the locale to use
+     * @return true if string matches a boolean, false if does not match or is null
+     * @throws IllegalArgumentException if locale is null
+     */
+    public static boolean isBoolean(final String input, final Locale locale) {
+        if(input == null) return false;
+        checkArgumentNotNull(locale, LOCALE_CANNOT_BE_NULL);
+        final String value = strip(input.toLowerCase(locale));
+        switch(value)
+        {
+            case "true":
+            case "t":
+            case "yes":
+            case "y":
+            case "1":
+            case "succeeded":
+            case "succeed":
+            case "enabled":
+            case "false":
+            case "f":
+            case "no":
+            case "n":
+            case "0":
+            case "-1":
+            case "failed":
+            case "fail":
+            case "disabled":
+                return true;
+            default:
+                return false;
         }
     }
 
-    private static JsonArray getHTTPResponse(InputStream content) throws IOException {
-        try (final InputStreamReader isr = new InputStreamReader(content)) {
-            return JsonParser.parseReader(isr).getAsJsonArray();
-        }
+    /**
+     * <p>Strips whitespace from the start and end of a String.</p>
+     *
+     * <p>A {@code null} input String returns {@code null}.</p>
+     *
+     * @param str  the String to remove whitespace from, may be null
+     * @return the stripped String, {@code null} if null String input
+     */
+    public static String strip(final String str) {
+        return strip(str, null);
     }
 
-    private static String getHTTPErrorMessage(InputStream content) throws IOException {
-        try (final InputStreamReader isr = new InputStreamReader(content)) {
-            return JsonParser.parseReader(isr).getAsJsonObject()
-                    .get("message").getAsString().replace("\"", "");
-        }
+    /**
+     * <p>Strips any of a set of characters from the start and end of a String.
+     * This is similar to {@link String#trim()} but allows the characters
+     * to be stripped to be controlled.</p>
+     *
+     * <p>A {@code null} input String returns {@code null}.
+     * An empty string ("") input returns the empty string.</p>
+     *
+     * <p>If the stripChars String is {@code null}, whitespace is
+     * stripped as defined by {@link Character#isWhitespace(char)}.
+     * Alternatively use {@link #strip(String)}.</p>
+     *
+     * @param str  the String to remove characters from, may be null
+     * @param stripChars  the characters to remove, null treated as whitespace
+     * @return the stripped String, {@code null} if null String input
+     */
+    public static String strip(String str, final String stripChars) {
+        if (str.isEmpty()) return str;
+        str = stripStart(str, stripChars);
+        return stripEnd(str, stripChars);
     }
 
     /**

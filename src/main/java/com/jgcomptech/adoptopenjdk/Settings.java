@@ -7,7 +7,7 @@ public class Settings {
     /**
      * The application version.
      */
-    public static final String APP_VERSION = "0.1.0";
+    public static final String APP_VERSION = "0.1.1";
     /**
      * The company name string for use in all URLs and paths.
      */
