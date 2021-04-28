@@ -271,7 +271,7 @@
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
-            <version>3.0.0-M4</version>
+            <version>3.0.1</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-utils -->
         <dependency>
