@@ -1,0 +1,25 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+  reviewers:
+  - jlgager24
+  assignees:
+  - jlgager24
+  ignore:
+  - dependency-name: net.java.dev.jna:jna-platform
+    versions:
+    - 5.7.0
+  - dependency-name: org.glassfish.jaxb:jaxb-runtime
+    versions:
+    - 3.0.0
+  - dependency-name: org.ow2.asm:asm
+    versions:
+    - "9.0"
+  - dependency-name: me.tongfei:progressbar
+    versions:
+    - 0.9.0
